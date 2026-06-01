@@ -1,5 +1,7 @@
 # SurveyCalcKit
 
+[![.NET](https://github.com/WhaleGreatSage/SurveyCalcKit/actions/workflows/dotnet.yml/badge.svg)](https://github.com/WhaleGreatSage/SurveyCalcKit/actions/workflows/dotnet.yml)
+
 SurveyCalcKit is an open-source C#/.NET 8 surveying calculation toolkit for students, teachers, and beginner engineering surveying workflows.
 
 The project focuses on small, readable, testable calculations that can be used from a .NET class library, a command-line tool, or a simple WinForms desktop app.
