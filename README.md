@@ -3,6 +3,11 @@
 [![.NET](https://github.com/WhaleGreatSage/SurveyCalcKit/actions/workflows/dotnet.yml/badge.svg)](https://github.com/WhaleGreatSage/SurveyCalcKit/actions/workflows/dotnet.yml)
 
 SurveyCalcKit is an open-source C#/.NET 8 surveying calculation toolkit for students, teachers, and beginner engineering surveying workflows.
+## 中文说明
+
+SurveyCalcKit 是一个面向测绘学生和初学者的开源测绘计算工具包，目标是用清晰、可测试的 C#/.NET 代码复现常见测绘计算流程，包括导线边长、方位角、高差、坡度、坐标变换和计算报告生成等功能。
+
+这个项目也可以作为测绘程序设计、工程测量课程实践和 C# WinForms 入门练习的参考项目。
 
 The project focuses on small, readable, testable calculations that can be used from a .NET class library, a command-line tool, or a simple WinForms desktop app.
 
