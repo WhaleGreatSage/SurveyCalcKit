@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Added closed traverse closure calculation and Bowditch/Compass Rule adjustment.
+- Added `surveycalc closure <file>` CLI command.
+- Added WinForms `Calculate Closure` action.
+- Added closed traverse sample data and documentation.
 - Initialized .NET 8 solution structure.
 - Added `SurveyCalcKit.Core` models, parsing, traverse, elevation, coordinate transform, and report services.
 - Added `SurveyCalcKit.Cli`.

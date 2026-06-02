@@ -8,6 +8,7 @@ internal static class SurveyCalcCli
 {
     private static readonly ParseService Parser = new();
     private static readonly TraverseCalculator TraverseCalculator = new();
+    private static readonly ClosedTraverseCalculator ClosedTraverseCalculator = new();
     private static readonly CoordinateTransformService TransformService = new();
     private static readonly ReportBuilder ReportBuilder = new();
 
@@ -25,6 +26,7 @@ internal static class SurveyCalcCli
             "parse" => RunParse(commandArgs),
             "traverse" => RunTraverse(commandArgs),
             "elevation" => RunElevation(commandArgs),
+            "closure" => RunClosure(commandArgs),
             "transform" => RunTransform(commandArgs),
             _ => Fail($"Unknown command '{commandArgs[0]}'.")
         };
@@ -86,6 +88,25 @@ internal static class SurveyCalcCli
         var segments = TraverseCalculator.CalculateSegments(parseResult.Points);
         Console.WriteLine(ReportBuilder.BuildElevationReport(parseResult, segments));
         return 0;
+    }
+
+    private static int RunClosure(string[] args)
+    {
+        if (!TryReadFileArgument(args, out var text))
+        {
+            return 1;
+        }
+
+        var parseResult = Parser.ParsePoints(text);
+        if (!EnsureValidParseResult(parseResult))
+        {
+            return 1;
+        }
+
+        var closureResult = ClosedTraverseCalculator.Calculate(parseResult.Points);
+        Console.WriteLine(ReportBuilder.BuildClosureReport(parseResult, closureResult));
+
+        return closureResult.AdjustedSegments.Count > 0 ? 0 : 1;
     }
 
     private static int RunTransform(string[] args)
@@ -232,6 +253,7 @@ internal static class SurveyCalcCli
               surveycalc parse <file>
               surveycalc traverse <file>
               surveycalc elevation <file>
+              surveycalc closure <file>
               surveycalc transform <file> --dx <value> --dy <value> --scale <value> --angle <degrees>
 
             Input rows:

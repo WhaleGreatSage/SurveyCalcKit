@@ -110,6 +110,50 @@ public sealed class ReportBuilder
         return builder.ToString();
     }
 
+    public string BuildClosureReport(
+        ParseResult parseResult,
+        TraverseClosureResult closureResult,
+        ReportLanguage language = ReportLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+        ArgumentNullException.ThrowIfNull(closureResult);
+
+        var builder = new StringBuilder();
+        AppendTitle(builder, language, "SurveyCalcKit Closed Traverse Report", "SurveyCalcKit 闭合导线平差报告");
+        AppendPointCount(builder, parseResult, language);
+        AppendLine(
+            builder,
+            language,
+            $"Start: {closureResult.StartPointName} ({FormatNumber(closureResult.StartX)}, {FormatNumber(closureResult.StartY)})",
+            $"起点: {closureResult.StartPointName} ({FormatNumber(closureResult.StartX)}, {FormatNumber(closureResult.StartY)})");
+        AppendLine(
+            builder,
+            language,
+            $"End: {closureResult.EndPointName} ({FormatNumber(closureResult.EndX)}, {FormatNumber(closureResult.EndY)})",
+            $"终点: {closureResult.EndPointName} ({FormatNumber(closureResult.EndX)}, {FormatNumber(closureResult.EndY)})");
+        AppendLine(
+            builder,
+            language,
+            $"Closure fx={FormatNumber(closureResult.Fx)}, fy={FormatNumber(closureResult.Fy)}, f={FormatNumber(closureResult.ClosureError)}",
+            $"闭合差 fx={FormatNumber(closureResult.Fx)}, fy={FormatNumber(closureResult.Fy)}, f={FormatNumber(closureResult.ClosureError)}");
+        AppendLine(
+            builder,
+            language,
+            $"Total length: {FormatNumber(closureResult.TotalLength)}",
+            $"导线总长: {FormatNumber(closureResult.TotalLength)}");
+        AppendLine(
+            builder,
+            language,
+            $"Relative closure ratio: {FormatRatio(closureResult.RelativeClosureRatio)}",
+            $"相对闭合差比例: {FormatRatio(closureResult.RelativeClosureRatio)}");
+
+        AppendAdjustedSegmentTable(builder, closureResult.AdjustedSegments, language);
+        AppendAdjustedPointTable(builder, closureResult.AdjustedPoints, language);
+        AppendClosureWarnings(builder, closureResult.Warnings, language);
+
+        return builder.ToString();
+    }
+
     private static void AppendTitle(StringBuilder builder, ReportLanguage language, string english, string chinese)
     {
         AppendLine(builder, language, english, chinese);
@@ -183,6 +227,79 @@ public sealed class ReportBuilder
         }
     }
 
+    private static void AppendAdjustedSegmentTable(
+        StringBuilder builder,
+        IReadOnlyList<AdjustedSegmentResult> segments,
+        ReportLanguage language)
+    {
+        if (segments.Count == 0)
+        {
+            AppendLine(builder, language, "Adjusted segments: none", "改正后线段: 无");
+            return;
+        }
+
+        AppendLine(builder, language, "Bowditch adjusted segments:", "Bowditch 改正线段表:");
+        AppendLine(
+            builder,
+            language,
+            "From -> To | Distance2D | OriginalDx | OriginalDy | CorrDx | CorrDy | AdjustedDx | AdjustedDy",
+            "起点 -> 终点 | 二维距离 | 原Dx | 原Dy | 改正Dx | 改正Dy | 改正后Dx | 改正后Dy");
+
+        foreach (var segment in segments)
+        {
+            builder.AppendLine(
+                $"{segment.From} -> {segment.To} | " +
+                $"{FormatNumber(segment.Distance2D)} | {FormatNumber(segment.OriginalDx)} | {FormatNumber(segment.OriginalDy)} | " +
+                $"{FormatNumber(segment.CorrectionDx)} | {FormatNumber(segment.CorrectionDy)} | " +
+                $"{FormatNumber(segment.AdjustedDx)} | {FormatNumber(segment.AdjustedDy)}");
+        }
+    }
+
+    private static void AppendAdjustedPointTable(
+        StringBuilder builder,
+        IReadOnlyList<AdjustedPointRecord> points,
+        ReportLanguage language)
+    {
+        if (points.Count == 0)
+        {
+            AppendLine(builder, language, "Adjusted points: none", "改正后坐标: 无");
+            return;
+        }
+
+        AppendLine(builder, language, "Adjusted coordinates:", "改正后坐标表:");
+        AppendLine(
+            builder,
+            language,
+            "Name | OriginalX | OriginalY | CorrX | CorrY | AdjustedX | AdjustedY | H",
+            "点名 | 原X | 原Y | 改正X | 改正Y | 改正后X | 改正后Y | H");
+
+        foreach (var point in points)
+        {
+            builder.AppendLine(
+                $"{point.Name} | {FormatNumber(point.OriginalX)} | {FormatNumber(point.OriginalY)} | " +
+                $"{FormatNumber(point.CorrectionX)} | {FormatNumber(point.CorrectionY)} | " +
+                $"{FormatNumber(point.AdjustedX)} | {FormatNumber(point.AdjustedY)} | {FormatNullable(point.H)}");
+        }
+    }
+
+    private static void AppendClosureWarnings(
+        StringBuilder builder,
+        IReadOnlyList<string> warnings,
+        ReportLanguage language)
+    {
+        if (warnings.Count == 0)
+        {
+            AppendLine(builder, language, "Warnings: none", "警告: 无");
+            return;
+        }
+
+        AppendLine(builder, language, "Warnings:", "警告:");
+        foreach (var warning in warnings)
+        {
+            builder.AppendLine($"- {warning}");
+        }
+    }
+
     private static void AppendParseErrors(StringBuilder builder, ParseResult parseResult, ReportLanguage language)
     {
         if (parseResult.Errors.Count == 0)
@@ -218,5 +335,12 @@ public sealed class ReportBuilder
     private static string FormatNumber(double value)
     {
         return value.ToString("0.###", CultureInfo.InvariantCulture);
+    }
+
+    private static string FormatRatio(double ratio)
+    {
+        return double.IsPositiveInfinity(ratio)
+            ? "infinity (perfect closure)"
+            : $"1:{FormatNumber(ratio)}";
     }
 }

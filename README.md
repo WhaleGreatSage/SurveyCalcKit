@@ -24,6 +24,7 @@ The project focuses on small, readable, testable calculations that can be used f
 - Support optional elevation values.
 - Calculate segment dx, dy, 2D distance, optional 3D distance, azimuth, delta H, and slope percentage.
 - Calculate total 2D traverse length.
+- Calculate closed traverse coordinate closure error and Bowditch/Compass Rule adjustment.
 - Calculate elevation closure error when known start and end elevations are available.
 - Translate, scale, and rotate point coordinates.
 - Generate readable English and Chinese reports.
@@ -48,6 +49,7 @@ samples/
   traverse_sample.txt
   elevation_sample.txt
   transform_sample.txt
+  closed_traverse_sample.txt
 .github/workflows/
   dotnet.yml                CI workflow
 ```
@@ -82,6 +84,7 @@ The CLI executable is named `surveycalc` when published or built.
 surveycalc parse <file>
 surveycalc traverse <file>
 surveycalc elevation <file>
+surveycalc closure <file>
 surveycalc transform <file> --dx <value> --dy <value> --scale <value> --angle <degrees>
 ```
 
@@ -91,6 +94,7 @@ From source, place the command after `--`:
 dotnet run --project src/SurveyCalcKit.Cli -- parse samples/traverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- traverse samples/traverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- elevation samples/elevation_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- closure samples/closed_traverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- transform samples/transform_sample.txt --dx 500 --dy 1000 --scale 1.0002 --angle 15
 ```
 
@@ -102,7 +106,7 @@ The WinForms app provides:
 
 - A left multiline text box for raw point input.
 - A right multiline text box for calculation reports.
-- Import, Calculate Traverse, Calculate Elevation, Export Report, and Clear buttons.
+- Import, Calculate Traverse, Calculate Elevation, Calculate Closure, Export Report, and Clear buttons.
 
 Use `Import` to load `.txt`, `.dat`, or `.csv` style point files. Use the calculation buttons to generate a report. Use `Export Report` to save the output as text.
 
@@ -134,6 +138,37 @@ P2 -> P3 | 40 | -15 | 42.72 | 42.721 | 339.444 | 0.35 | 0.819
 Total 2D length: 92.72
 Warnings: none
 ```
+
+## Closed Traverse Closure and Bowditch Adjustment
+
+Closed traverse input should include the starting point again as the final row, either with the same name or coordinates close to the start:
+
+```text
+P1 1000.000 1000.000 12.500
+P2 1050.120 1001.350 12.760
+P3 1048.900 1042.800 13.100
+P4 998.750 1041.600 12.880
+P1 1000.080 999.940 12.500
+```
+
+Run:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- closure samples/closed_traverse_sample.txt
+```
+
+Sample output includes closure components and adjusted coordinates:
+
+```text
+Closure fx=0.08, fy=-0.06, f=0.1
+Total length: 183.452
+Relative closure ratio: 1:1834.517
+Bowditch adjusted segments:
+Adjusted coordinates:
+Warnings: none
+```
+
+Bowditch adjustment distributes the coordinate closure error to each segment in proportion to segment length. This is a simple classroom-friendly adjustment method; it assumes comparable observation quality and does not replace a full least-squares network adjustment.
 
 ## Roadmap
 

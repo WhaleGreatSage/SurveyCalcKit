@@ -14,6 +14,7 @@ SurveyCalcKit is intended to grow slowly and remain beginner-friendly.
 
 ## Version 0.2
 
+- Closed traverse closure calculation and Bowditch adjustment.
 - More report formatting options.
 - Optional Chinese UI labels.
 - CSV export for segment tables.
@@ -21,7 +22,6 @@ SurveyCalcKit is intended to grow slowly and remain beginner-friendly.
 
 ## Version 0.3
 
-- Simple traverse closure summaries.
 - Beginner-friendly adjustment examples.
 - NuGet package metadata for `SurveyCalcKit.Core`.
 

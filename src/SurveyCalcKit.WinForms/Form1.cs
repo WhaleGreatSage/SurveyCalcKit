@@ -7,6 +7,7 @@ public partial class Form1 : Form
 {
     private readonly ParseService parseService = new();
     private readonly TraverseCalculator traverseCalculator = new();
+    private readonly ClosedTraverseCalculator closedTraverseCalculator = new();
     private readonly ReportBuilder reportBuilder = new();
 
     public Form1()
@@ -66,6 +67,18 @@ public partial class Form1 : Form
 
         var segments = traverseCalculator.CalculateSegments(parseResult.Points);
         reportOutputTextBox.Text = reportBuilder.BuildElevationReport(parseResult, segments, language: ReportLanguage.English);
+    }
+
+    private void CalculateClosureButton_Click(object? sender, EventArgs e)
+    {
+        var parseResult = parseService.ParsePoints(rawInputTextBox.Text);
+        if (!TryShowParseErrors(parseResult))
+        {
+            return;
+        }
+
+        var closureResult = closedTraverseCalculator.Calculate(parseResult.Points);
+        reportOutputTextBox.Text = reportBuilder.BuildClosureReport(parseResult, closureResult, ReportLanguage.English);
     }
 
     private void ExportReportButton_Click(object? sender, EventArgs e)

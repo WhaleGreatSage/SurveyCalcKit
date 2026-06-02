@@ -34,6 +34,7 @@ partial class Form1
         importButton = new Button();
         calculateTraverseButton = new Button();
         calculateElevationButton = new Button();
+        calculateClosureButton = new Button();
         exportReportButton = new Button();
         clearButton = new Button();
         openFileDialog = new OpenFileDialog();
@@ -105,13 +106,24 @@ partial class Form1
         calculateElevationButton.UseVisualStyleBackColor = true;
         calculateElevationButton.Click += CalculateElevationButton_Click;
         //
+        // calculateClosureButton
+        //
+        calculateClosureButton.AutoSize = true;
+        calculateClosureButton.Location = new Point(379, 3);
+        calculateClosureButton.Name = "calculateClosureButton";
+        calculateClosureButton.Size = new Size(125, 30);
+        calculateClosureButton.TabIndex = 3;
+        calculateClosureButton.Text = "Calculate Closure";
+        calculateClosureButton.UseVisualStyleBackColor = true;
+        calculateClosureButton.Click += CalculateClosureButton_Click;
+        //
         // exportReportButton
         //
         exportReportButton.AutoSize = true;
-        exportReportButton.Location = new Point(379, 3);
+        exportReportButton.Location = new Point(510, 3);
         exportReportButton.Name = "exportReportButton";
         exportReportButton.Size = new Size(105, 30);
-        exportReportButton.TabIndex = 3;
+        exportReportButton.TabIndex = 4;
         exportReportButton.Text = "Export Report";
         exportReportButton.UseVisualStyleBackColor = true;
         exportReportButton.Click += ExportReportButton_Click;
@@ -119,10 +131,10 @@ partial class Form1
         // clearButton
         //
         clearButton.AutoSize = true;
-        clearButton.Location = new Point(490, 3);
+        clearButton.Location = new Point(621, 3);
         clearButton.Name = "clearButton";
         clearButton.Size = new Size(75, 30);
-        clearButton.TabIndex = 4;
+        clearButton.TabIndex = 5;
         clearButton.Text = "Clear";
         clearButton.UseVisualStyleBackColor = true;
         clearButton.Click += ClearButton_Click;
@@ -173,6 +185,7 @@ partial class Form1
         buttonPanel.Controls.Add(importButton);
         buttonPanel.Controls.Add(calculateTraverseButton);
         buttonPanel.Controls.Add(calculateElevationButton);
+        buttonPanel.Controls.Add(calculateClosureButton);
         buttonPanel.Controls.Add(exportReportButton);
         buttonPanel.Controls.Add(clearButton);
         buttonPanel.Dock = DockStyle.Fill;
@@ -207,6 +220,7 @@ partial class Form1
     private Button importButton;
     private Button calculateTraverseButton;
     private Button calculateElevationButton;
+    private Button calculateClosureButton;
     private Button exportReportButton;
     private Button clearButton;
     private OpenFileDialog openFileDialog;
