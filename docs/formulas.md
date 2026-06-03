@@ -74,6 +74,41 @@ ComputedEndElevation = knownStartElevation + ObservedDeltaH
 ClosureError = ComputedEndElevation - knownEndElevation
 ```
 
+## Leveling Route Closure Error
+
+A leveling route starts from a benchmark elevation and closes on another known benchmark. Each station contains a backsight reading and a foresight reading.
+
+```text
+SumBacksight = sum(all backsight readings)
+SumForesight = sum(all foresight readings)
+
+ObservedHeightDifference = SumBacksight - SumForesight
+KnownHeightDifference = EndElevation - StartElevation
+ClosureError = ObservedHeightDifference - KnownHeightDifference
+```
+
+## Leveling Route Height Adjustment
+
+SurveyCalcKit distributes leveling closure error equally by station count:
+
+```text
+CorrectionPerStation = -ClosureError / StationCount
+Correction_i = CorrectionPerStation * i
+AdjustedElevation_i = RawElevation_i + Correction_i
+```
+
+Raw elevations are accumulated from the start benchmark:
+
+```text
+RawElevation_i = RawElevation_(i-1) + Backsight_i - Foresight_i
+```
+
+If there are no observations, the station count is zero and no correction is calculated. Negative backsight or foresight values are reported as warnings.
+
+## Leveling Adjustment Limitations
+
+This simple method is intended for beginner workflows. It distributes correction by station count only. It does not weight by sight length, route distance, instrument precision, environmental conditions, or least-squares observation models.
+
 ## Closed Traverse Coordinate Closure
 
 A closed traverse should return to the starting point. In practice, small observation and rounding errors often leave a small coordinate closure error:

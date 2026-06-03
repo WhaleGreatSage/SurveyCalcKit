@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Added leveling route parser, closure error calculation, and station-count height adjustment.
+- Added `surveycalc leveling <file>` CLI command.
+- Added WinForms `Calculate Leveling` action.
+- Added leveling route sample data and documentation.
 - Added closed traverse closure calculation and Bowditch/Compass Rule adjustment.
 - Added `surveycalc closure <file>` CLI command.
 - Added WinForms `Calculate Closure` action.

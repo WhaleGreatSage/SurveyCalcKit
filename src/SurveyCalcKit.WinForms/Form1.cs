@@ -8,6 +8,7 @@ public partial class Form1 : Form
     private readonly ParseService parseService = new();
     private readonly TraverseCalculator traverseCalculator = new();
     private readonly ClosedTraverseCalculator closedTraverseCalculator = new();
+    private readonly LevelingRouteCalculator levelingRouteCalculator = new();
     private readonly ReportBuilder reportBuilder = new();
 
     public Form1()
@@ -67,6 +68,19 @@ public partial class Form1 : Form
 
         var segments = traverseCalculator.CalculateSegments(parseResult.Points);
         reportOutputTextBox.Text = reportBuilder.BuildElevationReport(parseResult, segments, language: ReportLanguage.English);
+    }
+
+    private void CalculateLevelingButton_Click(object? sender, EventArgs e)
+    {
+        var parseResult = parseService.ParseLevelingRoute(rawInputTextBox.Text);
+        if (!parseResult.IsSuccess)
+        {
+            reportOutputTextBox.Text = reportBuilder.BuildLevelingParseReport(parseResult, ReportLanguage.English);
+            return;
+        }
+
+        var levelingResult = levelingRouteCalculator.Calculate(parseResult.Route!);
+        reportOutputTextBox.Text = reportBuilder.BuildLevelingRouteReport(parseResult, levelingResult, ReportLanguage.English);
     }
 
     private void CalculateClosureButton_Click(object? sender, EventArgs e)

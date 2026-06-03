@@ -22,6 +22,7 @@ dotnet run --project src/SurveyCalcKit.Cli -- parse samples/traverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- traverse samples/traverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- elevation samples/elevation_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- closure samples/closed_traverse_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- leveling samples/leveling_route_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- transform samples/transform_sample.txt --dx 500 --dy 1000 --scale 1.0002 --angle 15
 ```
 
@@ -75,6 +76,37 @@ P4 998.750 1041.600 12.880
 P1 1000.080 999.940 12.500
 ```
 
+## Leveling Route Adjustment
+
+Use the `leveling` command for a route that starts and ends on known benchmarks:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- leveling samples/leveling_route_sample.txt
+```
+
+Input format:
+
+```text
+START BM1 100.000
+P1 1.235 0.865
+P2 1.120 0.940
+P3 0.980 1.050
+END BM2 100.480
+```
+
+The report includes:
+
+- start and end benchmark names and elevations
+- sum of backsight readings
+- sum of foresight readings
+- observed height difference
+- known height difference
+- closure error
+- station count
+- correction per station
+- raw and adjusted elevations
+- warnings for empty input, negative sight values, or large closure error
+
 ## WinForms
 
 Run on Windows:
@@ -83,4 +115,4 @@ Run on Windows:
 dotnet run --project src/SurveyCalcKit.WinForms
 ```
 
-Paste or import point records into the left text box, then calculate traverse, elevation, or closure reports. Export saves the current report as a text file.
+Paste or import point records into the left text box, then calculate traverse, elevation, leveling, or closure reports. Export saves the current report as a text file.

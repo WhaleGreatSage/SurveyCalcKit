@@ -154,6 +154,99 @@ public sealed class ReportBuilder
         return builder.ToString();
     }
 
+    public string BuildLevelingParseReport(
+        LevelingRouteParseResult parseResult,
+        ReportLanguage language = ReportLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+
+        var builder = new StringBuilder();
+        AppendTitle(builder, language, "SurveyCalcKit Leveling Parse Report", "SurveyCalcKit 水准路线解析报告");
+        if (parseResult.Route is not null)
+        {
+            AppendLine(
+                builder,
+                language,
+                $"Start benchmark: {parseResult.Route.StartBenchmarkName}, elevation={FormatNumber(parseResult.Route.StartElevation)}",
+                $"起始水准点: {parseResult.Route.StartBenchmarkName}, 高程={FormatNumber(parseResult.Route.StartElevation)}");
+            AppendLine(
+                builder,
+                language,
+                $"End benchmark: {parseResult.Route.EndBenchmarkName}, elevation={FormatNumber(parseResult.Route.EndElevation)}",
+                $"终止水准点: {parseResult.Route.EndBenchmarkName}, 高程={FormatNumber(parseResult.Route.EndElevation)}");
+            AppendLine(
+                builder,
+                language,
+                $"Observation count: {parseResult.Route.Observations.Count}",
+                $"观测站数: {parseResult.Route.Observations.Count}");
+        }
+
+        AppendParseErrors(builder, parseResult.Errors, language);
+        return builder.ToString();
+    }
+
+    public string BuildLevelingRouteReport(
+        LevelingRouteParseResult parseResult,
+        LevelingRouteResult routeResult,
+        ReportLanguage language = ReportLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+        ArgumentNullException.ThrowIfNull(routeResult);
+
+        var builder = new StringBuilder();
+        AppendTitle(builder, language, "SurveyCalcKit Leveling Route Report", "SurveyCalcKit 水准路线闭合差与高程改正报告");
+        AppendLine(
+            builder,
+            language,
+            $"Start benchmark: {routeResult.StartBenchmarkName}, elevation={FormatNumber(routeResult.StartElevation)}",
+            $"起始水准点: {routeResult.StartBenchmarkName}, 高程={FormatNumber(routeResult.StartElevation)}");
+        AppendLine(
+            builder,
+            language,
+            $"End benchmark: {routeResult.EndBenchmarkName}, elevation={FormatNumber(routeResult.EndElevation)}",
+            $"终止水准点: {routeResult.EndBenchmarkName}, 高程={FormatNumber(routeResult.EndElevation)}");
+        AppendLine(
+            builder,
+            language,
+            $"Sum backsight: {FormatNumber(routeResult.SumBacksight)}",
+            $"后视读数和: {FormatNumber(routeResult.SumBacksight)}");
+        AppendLine(
+            builder,
+            language,
+            $"Sum foresight: {FormatNumber(routeResult.SumForesight)}",
+            $"前视读数和: {FormatNumber(routeResult.SumForesight)}");
+        AppendLine(
+            builder,
+            language,
+            $"Observed height difference: {FormatNumber(routeResult.ObservedHeightDifference)}",
+            $"观测高差: {FormatNumber(routeResult.ObservedHeightDifference)}");
+        AppendLine(
+            builder,
+            language,
+            $"Known height difference: {FormatNumber(routeResult.KnownHeightDifference)}",
+            $"已知高差: {FormatNumber(routeResult.KnownHeightDifference)}");
+        AppendLine(
+            builder,
+            language,
+            $"Closure error: {FormatNumber(routeResult.ClosureError)}",
+            $"闭合差: {FormatNumber(routeResult.ClosureError)}");
+        AppendLine(
+            builder,
+            language,
+            $"Station count: {routeResult.StationCount}",
+            $"测站数: {routeResult.StationCount}");
+        AppendLine(
+            builder,
+            language,
+            $"Correction per station: {FormatNumber(routeResult.CorrectionPerStation)}",
+            $"每站改正数: {FormatNumber(routeResult.CorrectionPerStation)}");
+
+        AppendLevelingPointTable(builder, routeResult.Points, language);
+        AppendWarnings(builder, routeResult.Warnings, language);
+        AppendParseErrors(builder, parseResult.Errors, language);
+        return builder.ToString();
+    }
+
     private static void AppendTitle(StringBuilder builder, ReportLanguage language, string english, string chinese)
     {
         AppendLine(builder, language, english, chinese);
@@ -300,6 +393,50 @@ public sealed class ReportBuilder
         }
     }
 
+    private static void AppendLevelingPointTable(
+        StringBuilder builder,
+        IReadOnlyList<LevelingPointResult> points,
+        ReportLanguage language)
+    {
+        if (points.Count == 0)
+        {
+            AppendLine(builder, language, "Adjusted elevations: none", "改正后高程: 无");
+            return;
+        }
+
+        AppendLine(builder, language, "Adjusted elevations:", "改正后高程表:");
+        AppendLine(
+            builder,
+            language,
+            "Point | RawElevation | Correction | AdjustedElevation",
+            "点名 | 未改正高程 | 改正数 | 改正后高程");
+
+        foreach (var point in points)
+        {
+            builder.AppendLine(
+                $"{point.PointName} | {FormatNumber(point.RawElevation)} | " +
+                $"{FormatNumber(point.Correction)} | {FormatNumber(point.AdjustedElevation)}");
+        }
+    }
+
+    private static void AppendWarnings(
+        StringBuilder builder,
+        IReadOnlyList<string> warnings,
+        ReportLanguage language)
+    {
+        if (warnings.Count == 0)
+        {
+            AppendLine(builder, language, "Warnings: none", "警告: 无");
+            return;
+        }
+
+        AppendLine(builder, language, "Warnings:", "警告:");
+        foreach (var warning in warnings)
+        {
+            builder.AppendLine($"- {warning}");
+        }
+    }
+
     private static void AppendParseErrors(StringBuilder builder, ParseResult parseResult, ReportLanguage language)
     {
         if (parseResult.Errors.Count == 0)
@@ -310,6 +447,23 @@ public sealed class ReportBuilder
 
         AppendLine(builder, language, "Warnings:", "警告:");
         foreach (var error in parseResult.Errors)
+        {
+            builder.AppendLine($"- {error.Message}");
+        }
+    }
+
+    private static void AppendParseErrors(
+        StringBuilder builder,
+        IReadOnlyList<ParseError> errors,
+        ReportLanguage language)
+    {
+        if (errors.Count == 0)
+        {
+            return;
+        }
+
+        AppendLine(builder, language, "Parse errors:", "解析错误:");
+        foreach (var error in errors)
         {
             builder.AppendLine($"- {error.Message}");
         }
@@ -334,6 +488,11 @@ public sealed class ReportBuilder
 
     private static string FormatNumber(double value)
     {
+        if (Math.Abs(value) < 0.0005)
+        {
+            return "0";
+        }
+
         return value.ToString("0.###", CultureInfo.InvariantCulture);
     }
 

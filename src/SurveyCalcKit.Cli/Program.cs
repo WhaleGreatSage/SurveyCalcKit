@@ -9,6 +9,7 @@ internal static class SurveyCalcCli
     private static readonly ParseService Parser = new();
     private static readonly TraverseCalculator TraverseCalculator = new();
     private static readonly ClosedTraverseCalculator ClosedTraverseCalculator = new();
+    private static readonly LevelingRouteCalculator LevelingRouteCalculator = new();
     private static readonly CoordinateTransformService TransformService = new();
     private static readonly ReportBuilder ReportBuilder = new();
 
@@ -27,6 +28,7 @@ internal static class SurveyCalcCli
             "traverse" => RunTraverse(commandArgs),
             "elevation" => RunElevation(commandArgs),
             "closure" => RunClosure(commandArgs),
+            "leveling" => RunLeveling(commandArgs),
             "transform" => RunTransform(commandArgs),
             _ => Fail($"Unknown command '{commandArgs[0]}'.")
         };
@@ -107,6 +109,25 @@ internal static class SurveyCalcCli
         Console.WriteLine(ReportBuilder.BuildClosureReport(parseResult, closureResult));
 
         return closureResult.AdjustedSegments.Count > 0 ? 0 : 1;
+    }
+
+    private static int RunLeveling(string[] args)
+    {
+        if (!TryReadFileArgument(args, out var text))
+        {
+            return 1;
+        }
+
+        var parseResult = Parser.ParseLevelingRoute(text);
+        if (!parseResult.IsSuccess)
+        {
+            Console.Error.WriteLine(ReportBuilder.BuildLevelingParseReport(parseResult));
+            return 1;
+        }
+
+        var routeResult = LevelingRouteCalculator.Calculate(parseResult.Route!);
+        Console.WriteLine(ReportBuilder.BuildLevelingRouteReport(parseResult, routeResult));
+        return routeResult.StationCount > 0 ? 0 : 1;
     }
 
     private static int RunTransform(string[] args)
@@ -254,6 +275,7 @@ internal static class SurveyCalcCli
               surveycalc traverse <file>
               surveycalc elevation <file>
               surveycalc closure <file>
+              surveycalc leveling <file>
               surveycalc transform <file> --dx <value> --dy <value> --scale <value> --angle <degrees>
 
             Input rows:
@@ -261,6 +283,11 @@ internal static class SurveyCalcCli
               P1 100.000 200.000 15.230
               P1,100.000,200.000
               P1,100.000,200.000,15.230
+
+            Leveling rows:
+              START BM1 100.000
+              P1 1.235 0.865
+              END BM2 100.480
             """);
     }
 }

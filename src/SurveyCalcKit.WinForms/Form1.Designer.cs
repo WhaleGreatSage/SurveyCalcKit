@@ -34,6 +34,7 @@ partial class Form1
         importButton = new Button();
         calculateTraverseButton = new Button();
         calculateElevationButton = new Button();
+        calculateLevelingButton = new Button();
         calculateClosureButton = new Button();
         exportReportButton = new Button();
         clearButton = new Button();
@@ -106,13 +107,24 @@ partial class Form1
         calculateElevationButton.UseVisualStyleBackColor = true;
         calculateElevationButton.Click += CalculateElevationButton_Click;
         //
+        // calculateLevelingButton
+        //
+        calculateLevelingButton.AutoSize = true;
+        calculateLevelingButton.Location = new Point(379, 3);
+        calculateLevelingButton.Name = "calculateLevelingButton";
+        calculateLevelingButton.Size = new Size(124, 30);
+        calculateLevelingButton.TabIndex = 3;
+        calculateLevelingButton.Text = "Calculate Leveling";
+        calculateLevelingButton.UseVisualStyleBackColor = true;
+        calculateLevelingButton.Click += CalculateLevelingButton_Click;
+        //
         // calculateClosureButton
         //
         calculateClosureButton.AutoSize = true;
-        calculateClosureButton.Location = new Point(379, 3);
+        calculateClosureButton.Location = new Point(509, 3);
         calculateClosureButton.Name = "calculateClosureButton";
         calculateClosureButton.Size = new Size(125, 30);
-        calculateClosureButton.TabIndex = 3;
+        calculateClosureButton.TabIndex = 4;
         calculateClosureButton.Text = "Calculate Closure";
         calculateClosureButton.UseVisualStyleBackColor = true;
         calculateClosureButton.Click += CalculateClosureButton_Click;
@@ -120,10 +132,10 @@ partial class Form1
         // exportReportButton
         //
         exportReportButton.AutoSize = true;
-        exportReportButton.Location = new Point(510, 3);
+        exportReportButton.Location = new Point(640, 3);
         exportReportButton.Name = "exportReportButton";
         exportReportButton.Size = new Size(105, 30);
-        exportReportButton.TabIndex = 4;
+        exportReportButton.TabIndex = 5;
         exportReportButton.Text = "Export Report";
         exportReportButton.UseVisualStyleBackColor = true;
         exportReportButton.Click += ExportReportButton_Click;
@@ -131,10 +143,10 @@ partial class Form1
         // clearButton
         //
         clearButton.AutoSize = true;
-        clearButton.Location = new Point(621, 3);
+        clearButton.Location = new Point(751, 3);
         clearButton.Name = "clearButton";
         clearButton.Size = new Size(75, 30);
-        clearButton.TabIndex = 5;
+        clearButton.TabIndex = 6;
         clearButton.Text = "Clear";
         clearButton.UseVisualStyleBackColor = true;
         clearButton.Click += ClearButton_Click;
@@ -185,6 +197,7 @@ partial class Form1
         buttonPanel.Controls.Add(importButton);
         buttonPanel.Controls.Add(calculateTraverseButton);
         buttonPanel.Controls.Add(calculateElevationButton);
+        buttonPanel.Controls.Add(calculateLevelingButton);
         buttonPanel.Controls.Add(calculateClosureButton);
         buttonPanel.Controls.Add(exportReportButton);
         buttonPanel.Controls.Add(clearButton);
@@ -220,6 +233,7 @@ partial class Form1
     private Button importButton;
     private Button calculateTraverseButton;
     private Button calculateElevationButton;
+    private Button calculateLevelingButton;
     private Button calculateClosureButton;
     private Button exportReportButton;
     private Button clearButton;

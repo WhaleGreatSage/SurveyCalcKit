@@ -25,6 +25,7 @@ The project focuses on small, readable, testable calculations that can be used f
 - Calculate segment dx, dy, 2D distance, optional 3D distance, azimuth, delta H, and slope percentage.
 - Calculate total 2D traverse length.
 - Calculate closed traverse coordinate closure error and Bowditch/Compass Rule adjustment.
+- Calculate leveling route closure error and adjusted elevations.
 - Calculate elevation closure error when known start and end elevations are available.
 - Translate, scale, and rotate point coordinates.
 - Generate readable English and Chinese reports.
@@ -50,6 +51,7 @@ samples/
   elevation_sample.txt
   transform_sample.txt
   closed_traverse_sample.txt
+  leveling_route_sample.txt
 .github/workflows/
   dotnet.yml                CI workflow
 ```
@@ -85,6 +87,7 @@ surveycalc parse <file>
 surveycalc traverse <file>
 surveycalc elevation <file>
 surveycalc closure <file>
+surveycalc leveling <file>
 surveycalc transform <file> --dx <value> --dy <value> --scale <value> --angle <degrees>
 ```
 
@@ -95,6 +98,7 @@ dotnet run --project src/SurveyCalcKit.Cli -- parse samples/traverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- traverse samples/traverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- elevation samples/elevation_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- closure samples/closed_traverse_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- leveling samples/leveling_route_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- transform samples/transform_sample.txt --dx 500 --dy 1000 --scale 1.0002 --angle 15
 ```
 
@@ -106,7 +110,7 @@ The WinForms app provides:
 
 - A left multiline text box for raw point input.
 - A right multiline text box for calculation reports.
-- Import, Calculate Traverse, Calculate Elevation, Calculate Closure, Export Report, and Clear buttons.
+- Import, Calculate Traverse, Calculate Elevation, Calculate Leveling, Calculate Closure, Export Report, and Clear buttons.
 
 Use `Import` to load `.txt`, `.dat`, or `.csv` style point files. Use the calculation buttons to generate a report. Use `Export Report` to save the output as text.
 
@@ -169,6 +173,38 @@ Warnings: none
 ```
 
 Bowditch adjustment distributes the coordinate closure error to each segment in proportion to segment length. This is a simple classroom-friendly adjustment method; it assumes comparable observation quality and does not replace a full least-squares network adjustment.
+
+## Leveling Route Adjustment
+
+A leveling route starts from a known benchmark, uses backsight and foresight readings at each station, and closes on another known benchmark:
+
+```text
+START BM1 100.000
+P1 1.235 0.865
+P2 1.120 0.940
+P3 0.980 1.050
+END BM2 100.480
+```
+
+Run:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- leveling samples/leveling_route_sample.txt
+```
+
+Sample output includes the backsight/foresight sums, observed and known height differences, closure error, per-station correction, and adjusted elevations:
+
+```text
+Sum backsight: 3.335
+Sum foresight: 2.855
+Observed height difference: 0.48
+Known height difference: 0.48
+Closure error: 0
+Correction per station: 0
+Adjusted elevations:
+```
+
+The simple adjustment method distributes closure error equally by station count. It is suitable for beginner checking workflows, but it does not model sight length, instrument precision, or weighted least-squares adjustment.
 
 ## Roadmap
 
