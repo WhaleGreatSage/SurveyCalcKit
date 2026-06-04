@@ -6,6 +6,12 @@ All notable changes to this project will be documented in this file.
 
 No unreleased changes.
 
+## v0.2.1 - 2026-06-04
+
+- Maintenance release for the v0.2 feature set.
+- No code changes beyond changelog maintenance.
+- Keeps closed traverse adjustment and leveling route adjustment as the current stable release features.
+
 ## v0.2.0 - 2026-06-03
 
 - Added leveling route parser, closure error calculation, and station-count height adjustment.
