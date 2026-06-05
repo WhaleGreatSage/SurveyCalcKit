@@ -6,6 +6,15 @@ All notable changes to this project will be documented in this file.
 
 No unreleased changes.
 
+## v0.1.4 - 2026-06-05
+
+- Added Excel `.xlsx` point import using ClosedXML.
+- Added Excel export for traverse, leveling, polygon area, and report text workflows.
+- Added CLI `import` and `export` commands.
+- Added WinForms `导入 Excel` and `导出 Excel` actions.
+- Added Excel sample workbook and unit tests.
+- Updated Excel usage documentation.
+
 ## v0.2.1 - 2026-06-04
 
 - Maintenance release for the v0.2 feature set.

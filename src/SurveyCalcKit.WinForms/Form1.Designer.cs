@@ -32,10 +32,12 @@ partial class Form1
         rawInputTextBox = new TextBox();
         reportOutputTextBox = new TextBox();
         importButton = new Button();
+        importExcelButton = new Button();
         calculateTraverseButton = new Button();
         calculateElevationButton = new Button();
         calculateLevelingButton = new Button();
         calculateClosureButton = new Button();
+        exportExcelButton = new Button();
         exportReportButton = new Button();
         clearButton = new Button();
         openFileDialog = new OpenFileDialog();
@@ -85,13 +87,24 @@ partial class Form1
         importButton.UseVisualStyleBackColor = true;
         importButton.Click += ImportButton_Click;
         //
+        // importExcelButton
+        //
+        importExcelButton.AutoSize = true;
+        importExcelButton.Location = new Point(95, 3);
+        importExcelButton.Name = "importExcelButton";
+        importExcelButton.Size = new Size(91, 30);
+        importExcelButton.TabIndex = 1;
+        importExcelButton.Text = "导入 Excel";
+        importExcelButton.UseVisualStyleBackColor = true;
+        importExcelButton.Click += ImportExcelButton_Click;
+        //
         // calculateTraverseButton
         //
         calculateTraverseButton.AutoSize = true;
-        calculateTraverseButton.Location = new Point(95, 3);
+        calculateTraverseButton.Location = new Point(192, 3);
         calculateTraverseButton.Name = "calculateTraverseButton";
         calculateTraverseButton.Size = new Size(134, 30);
-        calculateTraverseButton.TabIndex = 1;
+        calculateTraverseButton.TabIndex = 2;
         calculateTraverseButton.Text = "Calculate Traverse";
         calculateTraverseButton.UseVisualStyleBackColor = true;
         calculateTraverseButton.Click += CalculateTraverseButton_Click;
@@ -99,10 +112,10 @@ partial class Form1
         // calculateElevationButton
         //
         calculateElevationButton.AutoSize = true;
-        calculateElevationButton.Location = new Point(235, 3);
+        calculateElevationButton.Location = new Point(332, 3);
         calculateElevationButton.Name = "calculateElevationButton";
         calculateElevationButton.Size = new Size(138, 30);
-        calculateElevationButton.TabIndex = 2;
+        calculateElevationButton.TabIndex = 3;
         calculateElevationButton.Text = "Calculate Elevation";
         calculateElevationButton.UseVisualStyleBackColor = true;
         calculateElevationButton.Click += CalculateElevationButton_Click;
@@ -110,10 +123,10 @@ partial class Form1
         // calculateLevelingButton
         //
         calculateLevelingButton.AutoSize = true;
-        calculateLevelingButton.Location = new Point(379, 3);
+        calculateLevelingButton.Location = new Point(476, 3);
         calculateLevelingButton.Name = "calculateLevelingButton";
         calculateLevelingButton.Size = new Size(124, 30);
-        calculateLevelingButton.TabIndex = 3;
+        calculateLevelingButton.TabIndex = 4;
         calculateLevelingButton.Text = "Calculate Leveling";
         calculateLevelingButton.UseVisualStyleBackColor = true;
         calculateLevelingButton.Click += CalculateLevelingButton_Click;
@@ -121,21 +134,32 @@ partial class Form1
         // calculateClosureButton
         //
         calculateClosureButton.AutoSize = true;
-        calculateClosureButton.Location = new Point(509, 3);
+        calculateClosureButton.Location = new Point(606, 3);
         calculateClosureButton.Name = "calculateClosureButton";
         calculateClosureButton.Size = new Size(125, 30);
-        calculateClosureButton.TabIndex = 4;
+        calculateClosureButton.TabIndex = 5;
         calculateClosureButton.Text = "Calculate Closure";
         calculateClosureButton.UseVisualStyleBackColor = true;
         calculateClosureButton.Click += CalculateClosureButton_Click;
         //
+        // exportExcelButton
+        //
+        exportExcelButton.AutoSize = true;
+        exportExcelButton.Location = new Point(737, 3);
+        exportExcelButton.Name = "exportExcelButton";
+        exportExcelButton.Size = new Size(91, 30);
+        exportExcelButton.TabIndex = 6;
+        exportExcelButton.Text = "导出 Excel";
+        exportExcelButton.UseVisualStyleBackColor = true;
+        exportExcelButton.Click += ExportExcelButton_Click;
+        //
         // exportReportButton
         //
         exportReportButton.AutoSize = true;
-        exportReportButton.Location = new Point(640, 3);
+        exportReportButton.Location = new Point(834, 3);
         exportReportButton.Name = "exportReportButton";
         exportReportButton.Size = new Size(105, 30);
-        exportReportButton.TabIndex = 5;
+        exportReportButton.TabIndex = 7;
         exportReportButton.Text = "Export Report";
         exportReportButton.UseVisualStyleBackColor = true;
         exportReportButton.Click += ExportReportButton_Click;
@@ -143,10 +167,10 @@ partial class Form1
         // clearButton
         //
         clearButton.AutoSize = true;
-        clearButton.Location = new Point(751, 3);
+        clearButton.Location = new Point(945, 3);
         clearButton.Name = "clearButton";
         clearButton.Size = new Size(75, 30);
-        clearButton.TabIndex = 6;
+        clearButton.TabIndex = 8;
         clearButton.Text = "Clear";
         clearButton.UseVisualStyleBackColor = true;
         clearButton.Click += ClearButton_Click;
@@ -195,10 +219,12 @@ partial class Form1
         // buttonPanel
         //
         buttonPanel.Controls.Add(importButton);
+        buttonPanel.Controls.Add(importExcelButton);
         buttonPanel.Controls.Add(calculateTraverseButton);
         buttonPanel.Controls.Add(calculateElevationButton);
         buttonPanel.Controls.Add(calculateLevelingButton);
         buttonPanel.Controls.Add(calculateClosureButton);
+        buttonPanel.Controls.Add(exportExcelButton);
         buttonPanel.Controls.Add(exportReportButton);
         buttonPanel.Controls.Add(clearButton);
         buttonPanel.Dock = DockStyle.Fill;
@@ -231,10 +257,12 @@ partial class Form1
     private TextBox rawInputTextBox;
     private TextBox reportOutputTextBox;
     private Button importButton;
+    private Button importExcelButton;
     private Button calculateTraverseButton;
     private Button calculateElevationButton;
     private Button calculateLevelingButton;
     private Button calculateClosureButton;
+    private Button exportExcelButton;
     private Button exportReportButton;
     private Button clearButton;
     private OpenFileDialog openFileDialog;

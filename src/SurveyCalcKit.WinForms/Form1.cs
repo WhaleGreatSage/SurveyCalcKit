@@ -1,3 +1,4 @@
+using System.Globalization;
 using SurveyCalcKit.Core.Models;
 using SurveyCalcKit.Core.Services;
 
@@ -9,6 +10,7 @@ public partial class Form1 : Form
     private readonly TraverseCalculator traverseCalculator = new();
     private readonly ClosedTraverseCalculator closedTraverseCalculator = new();
     private readonly LevelingRouteCalculator levelingRouteCalculator = new();
+    private readonly ExcelService excelService = new();
     private readonly ReportBuilder reportBuilder = new();
 
     public Form1()
@@ -32,6 +34,30 @@ public partial class Form1 : Form
         {
             ShowError($"Could not import file: {ex.Message}");
         }
+    }
+
+    private void ImportExcelButton_Click(object? sender, EventArgs e)
+    {
+        using var dialog = new OpenFileDialog
+        {
+            Filter = "Excel workbook (*.xlsx)|*.xlsx|All files (*.*)|*.*",
+            Title = "Import Excel point data"
+        };
+
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        var result = excelService.ImportPoints(dialog.FileName);
+        if (!result.IsSuccess)
+        {
+            reportOutputTextBox.Text = string.Join(Environment.NewLine, result.Errors);
+            return;
+        }
+
+        rawInputTextBox.Text = string.Join(Environment.NewLine, result.Points.Select(FormatPointForInput));
+        reportOutputTextBox.Text = $"Imported {result.Points.Count} point(s) from Excel.";
     }
 
     private void CalculateTraverseButton_Click(object? sender, EventArgs e)
@@ -118,6 +144,33 @@ public partial class Form1 : Form
         }
     }
 
+    private void ExportExcelButton_Click(object? sender, EventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(reportOutputTextBox.Text))
+        {
+            ShowError("There is no report to export.");
+            return;
+        }
+
+        using var dialog = new SaveFileDialog
+        {
+            DefaultExt = "xlsx",
+            Filter = "Excel workbook (*.xlsx)|*.xlsx|All files (*.*)|*.*",
+            Title = "Export report to Excel"
+        };
+
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        var result = excelService.ExportReportText(dialog.FileName, "SurveyCalcKit Report", reportOutputTextBox.Text);
+        if (!result.IsSuccess)
+        {
+            ShowError(string.Join(Environment.NewLine, result.Errors));
+        }
+    }
+
     private void ClearButton_Click(object? sender, EventArgs e)
     {
         rawInputTextBox.Clear();
@@ -138,5 +191,17 @@ public partial class Form1 : Form
     private static void ShowError(string message)
     {
         MessageBox.Show(message, "SurveyCalcKit", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+    }
+
+    private static string FormatPointForInput(PointRecord point)
+    {
+        return point.H.HasValue
+            ? $"{point.Name} {FormatNumber(point.X)} {FormatNumber(point.Y)} {FormatNumber(point.H.Value)}"
+            : $"{point.Name} {FormatNumber(point.X)} {FormatNumber(point.Y)}";
+    }
+
+    private static string FormatNumber(double value)
+    {
+        return value.ToString("0.###", CultureInfo.InvariantCulture);
     }
 }

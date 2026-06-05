@@ -11,6 +11,7 @@ internal static class SurveyCalcCli
     private static readonly ClosedTraverseCalculator ClosedTraverseCalculator = new();
     private static readonly LevelingRouteCalculator LevelingRouteCalculator = new();
     private static readonly CoordinateTransformService TransformService = new();
+    private static readonly ExcelService ExcelService = new();
     private static readonly ReportBuilder ReportBuilder = new();
 
     public static int Run(string[] args)
@@ -25,6 +26,8 @@ internal static class SurveyCalcCli
         return commandArgs[0].ToLowerInvariant() switch
         {
             "parse" => RunParse(commandArgs),
+            "import" => RunImport(commandArgs),
+            "export" => RunExport(commandArgs),
             "traverse" => RunTraverse(commandArgs),
             "elevation" => RunElevation(commandArgs),
             "closure" => RunClosure(commandArgs),
@@ -44,6 +47,100 @@ internal static class SurveyCalcCli
         var parseResult = Parser.ParsePoints(text);
         Console.WriteLine(ReportBuilder.BuildParseReport(parseResult));
         return parseResult.IsSuccess ? 0 : 1;
+    }
+
+    private static int RunImport(string[] args)
+    {
+        if (!TryReadFileArgument(args, out _, mustReadText: false))
+        {
+            return 1;
+        }
+
+        var result = ExcelService.ImportPoints(args[1]);
+        if (!result.IsSuccess)
+        {
+            foreach (var error in result.Errors)
+            {
+                Console.Error.WriteLine(error);
+            }
+
+            return 1;
+        }
+
+        foreach (var warning in result.Warnings)
+        {
+            Console.Error.WriteLine($"Warning: {warning}");
+        }
+
+        foreach (var point in result.Points)
+        {
+            Console.WriteLine(point.H.HasValue
+                ? $"{point.Name} {FormatNumber(point.X)} {FormatNumber(point.Y)} {FormatNumber(point.H.Value)}"
+                : $"{point.Name} {FormatNumber(point.X)} {FormatNumber(point.Y)}");
+        }
+
+        return 0;
+    }
+
+    private static int RunExport(string[] args)
+    {
+        if (args.Length < 3 || IsHelp(args[1]))
+        {
+            PrintUsage();
+            return 1;
+        }
+
+        var resultType = args[1].ToLowerInvariant();
+        var outputPath = args[2];
+        var inputPath = ReadOption(args.Skip(3).ToArray(), "--input");
+        if (string.IsNullOrWhiteSpace(inputPath))
+        {
+            return Fail("Export requires --input <data-file> so SurveyCalcKit can calculate results before writing Excel.");
+        }
+
+        ExcelExportResult exportResult;
+        switch (resultType)
+        {
+            case "traverse":
+                if (!TryLoadPointInput(inputPath, out var traversePoints))
+                {
+                    return 1;
+                }
+
+                exportResult = ExcelService.ExportTraverseResults(outputPath, TraverseCalculator.CalculateSegments(traversePoints));
+                break;
+            case "leveling":
+                if (!TryLoadLevelingInput(inputPath, out var levelingInput))
+                {
+                    return 1;
+                }
+
+                exportResult = ExcelService.ExportLevelingResults(outputPath, LevelingRouteCalculator.Calculate(levelingInput));
+                break;
+            case "polygon":
+                if (!TryLoadPointInput(inputPath, out var polygonPoints))
+                {
+                    return 1;
+                }
+
+                exportResult = ExcelService.ExportPolygonAreaResults(outputPath, polygonPoints, CalculatePolygonArea(polygonPoints));
+                break;
+            default:
+                return Fail($"Unknown export result type '{resultType}'. Use traverse, leveling, or polygon.");
+        }
+
+        if (!exportResult.IsSuccess)
+        {
+            foreach (var error in exportResult.Errors)
+            {
+                Console.Error.WriteLine(error);
+            }
+
+            return 1;
+        }
+
+        Console.WriteLine($"Excel exported: {exportResult.FilePath}");
+        return 0;
     }
 
     private static int RunTraverse(string[] args)
@@ -160,7 +257,7 @@ internal static class SurveyCalcCli
             : args;
     }
 
-    private static bool TryReadFileArgument(string[] args, out string text)
+    private static bool TryReadFileArgument(string[] args, out string text, bool mustReadText = true)
     {
         text = string.Empty;
         if (args.Length < 2 || IsHelp(args[1]))
@@ -176,8 +273,68 @@ internal static class SurveyCalcCli
             return false;
         }
 
-        text = File.ReadAllText(path);
+        if (mustReadText)
+        {
+            text = File.ReadAllText(path);
+        }
+
         return true;
+    }
+
+    private static bool TryLoadPointInput(string path, out IReadOnlyList<PointRecord> points)
+    {
+        points = Array.Empty<PointRecord>();
+        if (!File.Exists(path))
+        {
+            Fail($"File not found: {path}");
+            return false;
+        }
+
+        if (string.Equals(Path.GetExtension(path), ".xlsx", StringComparison.OrdinalIgnoreCase))
+        {
+            var excelResult = ExcelService.ImportPoints(path);
+            if (!excelResult.IsSuccess)
+            {
+                foreach (var error in excelResult.Errors)
+                {
+                    Console.Error.WriteLine(error);
+                }
+
+                return false;
+            }
+
+            points = excelResult.Points;
+            return true;
+        }
+
+        var parseResult = Parser.ParsePoints(File.ReadAllText(path));
+        if (!EnsureValidParseResult(parseResult))
+        {
+            return false;
+        }
+
+        points = parseResult.Points;
+        return true;
+    }
+
+    private static bool TryLoadLevelingInput(string path, out LevelingRouteInput input)
+    {
+        input = new LevelingRouteInput(string.Empty, 0, string.Empty, 0, new List<LevelingObservation>());
+        if (!File.Exists(path))
+        {
+            Fail($"File not found: {path}");
+            return false;
+        }
+
+        var parseResult = Parser.ParseLevelingRoute(File.ReadAllText(path));
+        if (parseResult.IsSuccess)
+        {
+            input = parseResult.Route!;
+            return true;
+        }
+
+        Console.Error.WriteLine(ReportBuilder.BuildLevelingParseReport(parseResult));
+        return false;
     }
 
     private static bool TryReadTransformOptions(
@@ -253,6 +410,42 @@ internal static class SurveyCalcCli
         return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result);
     }
 
+    private static string? ReadOption(string[] args, string optionName)
+    {
+        for (var i = 0; i < args.Length - 1; i++)
+        {
+            if (string.Equals(args[i], optionName, StringComparison.OrdinalIgnoreCase))
+            {
+                return args[i + 1];
+            }
+        }
+
+        return null;
+    }
+
+    private static double CalculatePolygonArea(IReadOnlyList<PointRecord> points)
+    {
+        if (points.Count < 3)
+        {
+            return 0;
+        }
+
+        var sum = 0.0;
+        for (var i = 0; i < points.Count; i++)
+        {
+            var current = points[i];
+            var next = points[(i + 1) % points.Count];
+            sum += current.X * next.Y - next.X * current.Y;
+        }
+
+        return Math.Abs(sum) / 2.0;
+    }
+
+    private static string FormatNumber(double value)
+    {
+        return value.ToString("0.###", CultureInfo.InvariantCulture);
+    }
+
     private static bool IsHelp(string value)
     {
         return value is "-h" or "--help" or "help";
@@ -272,6 +465,8 @@ internal static class SurveyCalcCli
 
             Usage:
               surveycalc parse <file>
+              surveycalc import <file.xlsx>
+              surveycalc export <traverse|leveling|polygon> <file.xlsx> --input <data-file>
               surveycalc traverse <file>
               surveycalc elevation <file>
               surveycalc closure <file>

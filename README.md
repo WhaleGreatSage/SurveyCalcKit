@@ -28,6 +28,7 @@ The project focuses on small, readable, testable calculations that can be used f
 - Calculate leveling route closure error and adjusted elevations.
 - Calculate elevation closure error when known start and end elevations are available.
 - Translate, scale, and rotate point coordinates.
+- Import point data from Excel `.xlsx` files and export calculation results to Excel.
 - Generate readable English and Chinese reports.
 - Use the same core calculation library from CLI and WinForms.
 - Run automated .NET restore, build, and test checks through GitHub Actions.
@@ -52,6 +53,7 @@ samples/
   transform_sample.txt
   closed_traverse_sample.txt
   leveling_route_sample.txt
+  excel_sample.xlsx
 .github/workflows/
   dotnet.yml                CI workflow
 ```
@@ -84,6 +86,8 @@ The CLI executable is named `surveycalc` when published or built.
 
 ```bash
 surveycalc parse <file>
+surveycalc import <file.xlsx>
+surveycalc export <traverse|leveling|polygon> <file.xlsx> --input <data-file>
 surveycalc traverse <file>
 surveycalc elevation <file>
 surveycalc closure <file>
@@ -95,6 +99,8 @@ From source, place the command after `--`:
 
 ```bash
 dotnet run --project src/SurveyCalcKit.Cli -- parse samples/traverse_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- import samples/excel_sample.xlsx
+dotnet run --project src/SurveyCalcKit.Cli -- export traverse traverse_results.xlsx --input samples/excel_sample.xlsx
 dotnet run --project src/SurveyCalcKit.Cli -- traverse samples/traverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- elevation samples/elevation_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- closure samples/closed_traverse_sample.txt
@@ -110,9 +116,9 @@ The WinForms app provides:
 
 - A left multiline text box for raw point input.
 - A right multiline text box for calculation reports.
-- Import, Calculate Traverse, Calculate Elevation, Calculate Leveling, Calculate Closure, Export Report, and Clear buttons.
+- Import, 导入 Excel, Calculate Traverse, Calculate Elevation, Calculate Leveling, Calculate Closure, 导出 Excel, Export Report, and Clear buttons.
 
-Use `Import` to load `.txt`, `.dat`, or `.csv` style point files. Use the calculation buttons to generate a report. Use `Export Report` to save the output as text.
+Use `Import` to load `.txt`, `.dat`, or `.csv` style point files. Use `导入 Excel` to load `.xlsx` point data into the raw input box. Use the calculation buttons to generate a report. Use `Export Report` to save text output or `导出 Excel` to save the current report as an Excel workbook.
 
 ## Sample Input
 
@@ -205,6 +211,25 @@ Adjusted elevations:
 ```
 
 The simple adjustment method distributes closure error equally by station count. It is suitable for beginner checking workflows, but it does not model sight length, instrument precision, or weighted least-squares adjustment.
+
+## Excel Import and Export
+
+Point import expects a `.xlsx` worksheet with these headers in the first row:
+
+```text
+Name | X | Y | H
+```
+
+`H` is optional. Example CLI usage:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- import samples/excel_sample.xlsx
+dotnet run --project src/SurveyCalcKit.Cli -- export traverse traverse_results.xlsx --input samples/excel_sample.xlsx
+dotnet run --project src/SurveyCalcKit.Cli -- export leveling leveling_results.xlsx --input samples/leveling_route_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- export polygon polygon_area.xlsx --input samples/excel_sample.xlsx
+```
+
+The Excel exporter writes structured worksheets for traverse segment results, leveling summaries and adjusted elevations, polygon area summaries, point tables, and WinForms report text.
 
 ## Roadmap
 

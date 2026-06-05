@@ -2,6 +2,23 @@
 
 This document describes the formulas used by SurveyCalcKit.Core.
 
+## Excel Data Conventions
+
+Excel point import uses `.xlsx` files with headers on the first row:
+
+```text
+Name | X | Y | H
+```
+
+`Name`, `X`, and `Y` are required. `H` is optional. Imported points use the same formulas below as text point input. Excel export does not change calculation formulas; it writes calculated results into structured worksheets.
+
+Exported workbook types include:
+
+- `Traverse`: segment differences, distances, azimuth, elevation difference, and slope.
+- `Leveling Summary` and `Adjusted Elevations`: leveling closure and adjusted elevations.
+- `Polygon Area` and `Polygon Points`: shoelace area summary and source points.
+- `Report`: WinForms report text, one line per row.
+
 ## Segment Differences
 
 For two points `from` and `to`:

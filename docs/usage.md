@@ -19,6 +19,8 @@ Run from source:
 
 ```bash
 dotnet run --project src/SurveyCalcKit.Cli -- parse samples/traverse_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- import samples/excel_sample.xlsx
+dotnet run --project src/SurveyCalcKit.Cli -- export traverse traverse_results.xlsx --input samples/excel_sample.xlsx
 dotnet run --project src/SurveyCalcKit.Cli -- traverse samples/traverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- elevation samples/elevation_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- closure samples/closed_traverse_sample.txt
@@ -27,6 +29,32 @@ dotnet run --project src/SurveyCalcKit.Cli -- transform samples/transform_sample
 ```
 
 Commands return `0` for valid input and non-zero for invalid input, missing files, or unsupported arguments.
+
+## Excel Import and Export
+
+Excel point import supports `.xlsx` files with a first-row header:
+
+```text
+Name | X | Y | H
+```
+
+`Name`, `X`, and `Y` are required. `H` is optional.
+
+Import points from Excel:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- import samples/excel_sample.xlsx
+```
+
+Export calculation results to Excel:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- export traverse traverse_results.xlsx --input samples/excel_sample.xlsx
+dotnet run --project src/SurveyCalcKit.Cli -- export leveling leveling_results.xlsx --input samples/leveling_route_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- export polygon polygon_area.xlsx --input samples/excel_sample.xlsx
+```
+
+For `traverse` and `polygon`, `--input` may point to a text point file or an Excel point file. For `leveling`, `--input` should use the leveling text route format.
 
 ## Core Library
 
@@ -115,4 +143,4 @@ Run on Windows:
 dotnet run --project src/SurveyCalcKit.WinForms
 ```
 
-Paste or import point records into the left text box, then calculate traverse, elevation, leveling, or closure reports. Export saves the current report as a text file.
+Paste or import point records into the left text box, then calculate traverse, elevation, leveling, or closure reports. Use `导入 Excel` to populate the input box from an Excel point workbook. Use `导出 Excel` to save the current report to an `.xlsx` workbook. Export saves the current report as a text file.
