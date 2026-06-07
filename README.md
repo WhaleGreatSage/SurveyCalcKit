@@ -26,6 +26,8 @@ The project focuses on small, readable, testable calculations that can be used f
 - Calculate total 2D traverse length.
 - Calculate closed traverse coordinate closure error and Bowditch/Compass Rule adjustment.
 - Calculate leveling route closure error and adjusted elevations.
+- Calculate endpoint coordinates from start point, azimuth, and horizontal distance.
+- Calculate chainage, perpendicular offset, side, and projection point relative to a baseline.
 - Calculate elevation closure error when known start and end elevations are available.
 - Translate, scale, and rotate point coordinates.
 - Import point data from Excel `.xlsx` files and export calculation results to Excel.
@@ -53,6 +55,8 @@ samples/
   transform_sample.txt
   closed_traverse_sample.txt
   leveling_route_sample.txt
+  coordinate_forward_sample.txt
+  chainage_offset_sample.txt
   excel_sample.xlsx
 .github/workflows/
   dotnet.yml                CI workflow
@@ -92,6 +96,8 @@ surveycalc traverse <file>
 surveycalc elevation <file>
 surveycalc closure <file>
 surveycalc leveling <file>
+surveycalc forward <file>
+surveycalc offset <file>
 surveycalc transform <file> --dx <value> --dy <value> --scale <value> --angle <degrees>
 ```
 
@@ -105,6 +111,8 @@ dotnet run --project src/SurveyCalcKit.Cli -- traverse samples/traverse_sample.t
 dotnet run --project src/SurveyCalcKit.Cli -- elevation samples/elevation_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- closure samples/closed_traverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- leveling samples/leveling_route_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- forward samples/coordinate_forward_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- offset samples/chainage_offset_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- transform samples/transform_sample.txt --dx 500 --dy 1000 --scale 1.0002 --angle 15
 ```
 
@@ -116,9 +124,9 @@ The WinForms app provides:
 
 - A left multiline text box for raw point input.
 - A right multiline text box for calculation reports.
-- Import, 导入 Excel, Calculate Traverse, Calculate Elevation, Calculate Leveling, Calculate Closure, 导出 Excel, Export Report, and Clear buttons.
+- Import, 导入 Excel, Calculate Traverse, Calculate Elevation, Calculate Leveling, Calculate Closure, Calculate Forward, Calculate Offset, 导出 Excel, Export Report, and Clear buttons.
 
-Use `Import` to load `.txt`, `.dat`, or `.csv` style point files. Use `导入 Excel` to load `.xlsx` point data into the raw input box. Use the calculation buttons to generate a report. Use `Export Report` to save text output or `导出 Excel` to save the current report as an Excel workbook.
+Use `Import` to load `.txt`, `.dat`, or `.csv` style point files. Use `导入 Excel` to load `.xlsx` point data into the raw input box. Use the calculation buttons to generate traverse, elevation, leveling, closure, coordinate forward, or chainage/offset reports. Use `Export Report` to save text output or `导出 Excel` to save the current report as an Excel workbook.
 
 ## Sample Input
 
@@ -211,6 +219,62 @@ Adjusted elevations:
 ```
 
 The simple adjustment method distributes closure error equally by station count. It is suitable for beginner checking workflows, but it does not model sight length, instrument precision, or weighted least-squares adjustment.
+
+## Coordinate Forward Calculation / 坐标正算
+
+Coordinate forward calculation computes an endpoint from a known start coordinate, azimuth angle, and horizontal distance. SurveyCalcKit uses the same angle convention as its traverse azimuth: degrees measured counterclockwise from the positive X axis, normalized to `0` through `360`.
+
+```text
+START P1 1000.000 1000.000
+AZIMUTH 53.130102
+DISTANCE 50.000
+END P2
+```
+
+Run:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- forward samples/coordinate_forward_sample.txt
+```
+
+Sample output:
+
+```text
+Delta X: 30
+Delta Y: 40
+End point: P2
+End coordinates: X=1030, Y=1040
+Warnings: none
+```
+
+## Chainage and Offset Calculation / 里程与偏距计算
+
+Chainage and offset calculation projects a target point onto a baseline segment, then reports the distance along the baseline, perpendicular offset, left/right/on-line side, projection coordinate, and whether the projection falls inside the segment.
+
+```text
+BASELINE A 1000.000 1000.000 B 1100.000 1000.000
+START_CHAINAGE 0.000
+POINT P1 1050.000 1025.000
+```
+
+Run:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- offset samples/chainage_offset_sample.txt
+```
+
+Sample output:
+
+```text
+Baseline length: 100
+Projection coordinates: X=1050, Y=1000
+Chainage: 50
+Offset: 25
+Side: Left
+Projection inside segment: Yes
+```
+
+This straight-segment method is suitable for simple baseline checks and beginner stakeout exercises. It does not yet calculate chainage along circular curves, transition curves, or multi-segment centerlines.
 
 ## Excel Import and Export
 

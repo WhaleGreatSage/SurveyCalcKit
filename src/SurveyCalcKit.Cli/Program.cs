@@ -10,6 +10,8 @@ internal static class SurveyCalcCli
     private static readonly TraverseCalculator TraverseCalculator = new();
     private static readonly ClosedTraverseCalculator ClosedTraverseCalculator = new();
     private static readonly LevelingRouteCalculator LevelingRouteCalculator = new();
+    private static readonly CoordinateForwardCalculator CoordinateForwardCalculator = new();
+    private static readonly ChainageOffsetCalculator ChainageOffsetCalculator = new();
     private static readonly CoordinateTransformService TransformService = new();
     private static readonly ExcelService ExcelService = new();
     private static readonly ReportBuilder ReportBuilder = new();
@@ -32,6 +34,8 @@ internal static class SurveyCalcCli
             "elevation" => RunElevation(commandArgs),
             "closure" => RunClosure(commandArgs),
             "leveling" => RunLeveling(commandArgs),
+            "forward" => RunForward(commandArgs),
+            "offset" => RunOffset(commandArgs),
             "transform" => RunTransform(commandArgs),
             _ => Fail($"Unknown command '{commandArgs[0]}'.")
         };
@@ -225,6 +229,50 @@ internal static class SurveyCalcCli
         var routeResult = LevelingRouteCalculator.Calculate(parseResult.Route!);
         Console.WriteLine(ReportBuilder.BuildLevelingRouteReport(parseResult, routeResult));
         return routeResult.StationCount > 0 ? 0 : 1;
+    }
+
+    private static int RunForward(string[] args)
+    {
+        if (!TryReadFileArgument(args, out var text))
+        {
+            return 1;
+        }
+
+        var parseResult = Parser.ParseCoordinateForward(text);
+        if (!parseResult.IsSuccess)
+        {
+            Console.Error.WriteLine(ReportBuilder.BuildCoordinateForwardReport(
+                parseResult,
+                CreateEmptyForwardResult(),
+                ReportLanguage.English));
+            return 1;
+        }
+
+        var result = CoordinateForwardCalculator.Calculate(parseResult.Input!);
+        Console.WriteLine(ReportBuilder.BuildCoordinateForwardReport(parseResult, result));
+        return 0;
+    }
+
+    private static int RunOffset(string[] args)
+    {
+        if (!TryReadFileArgument(args, out var text))
+        {
+            return 1;
+        }
+
+        var parseResult = Parser.ParseChainageOffset(text);
+        if (!parseResult.IsSuccess)
+        {
+            Console.Error.WriteLine(ReportBuilder.BuildChainageOffsetReport(
+                parseResult,
+                CreateEmptyChainageOffsetResult(),
+                ReportLanguage.English));
+            return 1;
+        }
+
+        var result = ChainageOffsetCalculator.Calculate(parseResult.Input!);
+        Console.WriteLine(ReportBuilder.BuildChainageOffsetReport(parseResult, result));
+        return result.BaselineLength > 0 ? 0 : 1;
     }
 
     private static int RunTransform(string[] args)
@@ -441,6 +489,39 @@ internal static class SurveyCalcCli
         return Math.Abs(sum) / 2.0;
     }
 
+    private static CoordinateForwardResult CreateEmptyForwardResult()
+    {
+        return new CoordinateForwardResult(
+            string.Empty,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            string.Empty,
+            0,
+            0,
+            new List<string>());
+    }
+
+    private static ChainageOffsetResult CreateEmptyChainageOffsetResult()
+    {
+        return new ChainageOffsetResult(
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            0,
+            0,
+            0,
+            0,
+            "Undefined",
+            false,
+            0,
+            0,
+            new List<string>());
+    }
+
     private static string FormatNumber(double value)
     {
         return value.ToString("0.###", CultureInfo.InvariantCulture);
@@ -471,6 +552,8 @@ internal static class SurveyCalcCli
               surveycalc elevation <file>
               surveycalc closure <file>
               surveycalc leveling <file>
+              surveycalc forward <file>
+              surveycalc offset <file>
               surveycalc transform <file> --dx <value> --dy <value> --scale <value> --angle <degrees>
 
             Input rows:
@@ -483,6 +566,17 @@ internal static class SurveyCalcCli
               START BM1 100.000
               P1 1.235 0.865
               END BM2 100.480
+
+            Coordinate forward rows:
+              START P1 1000.000 1000.000
+              AZIMUTH 53.130102
+              DISTANCE 50.000
+              END P2
+
+            Chainage/offset rows:
+              BASELINE A 1000.000 1000.000 B 1100.000 1000.000
+              START_CHAINAGE 0.000
+              POINT P1 1050.000 1025.000
             """);
     }
 }

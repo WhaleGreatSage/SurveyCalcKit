@@ -81,6 +81,95 @@ Dx=-1, Dy=-1 -> 225 degrees
 Dx= 1, Dy=-1 -> 315 degrees
 ```
 
+SurveyCalcKit uses this same mathematical coordinate convention for coordinate forward calculation: the angle is measured counterclockwise from the positive X axis. It is not the north-clockwise bearing convention used in some field books.
+
+## Coordinate Forward Calculation
+
+Given a known start point, azimuth angle, and horizontal distance:
+
+```text
+Start = (X0, Y0)
+A = azimuth in degrees
+D = horizontal distance
+```
+
+Convert degrees to radians internally:
+
+```text
+Radians = A * pi / 180
+```
+
+Then calculate:
+
+```text
+DeltaX = D * cos(Radians)
+DeltaY = D * sin(Radians)
+
+X1 = X0 + DeltaX
+Y1 = Y0 + DeltaY
+```
+
+Azimuth input is normalized to `0` through `360` before calculation. Zero distance is valid and returns the start coordinate. Negative distance is reported as a warning and is not used as a signed reverse direction.
+
+## Chainage and Offset Projection
+
+Given a baseline from start point `A` to end point `B`, and a target point `P`:
+
+```text
+vx = B.X - A.X
+vy = B.Y - A.Y
+
+wx = P.X - A.X
+wy = P.Y - A.Y
+
+L2 = vx * vx + vy * vy
+BaselineLength = sqrt(L2)
+```
+
+The projection ratio along the infinite baseline is:
+
+```text
+t = (wx * vx + wy * vy) / L2
+```
+
+The projected coordinate is:
+
+```text
+ProjectionX = A.X + t * vx
+ProjectionY = A.Y + t * vy
+```
+
+Distance along the baseline and final chainage are:
+
+```text
+Along = t * BaselineLength
+Chainage = StartChainage + Along
+```
+
+Perpendicular offset is the distance from the target point to the projection point:
+
+```text
+Offset = sqrt((P.X - ProjectionX)^2 + (P.Y - ProjectionY)^2)
+```
+
+Side is determined with the 2D cross product:
+
+```text
+Cross = vx * wy - vy * wx
+```
+
+- `Cross > tolerance`: `Left`
+- `Cross < -tolerance`: `Right`
+- otherwise: `OnLine`
+
+The projection is inside the baseline segment when:
+
+```text
+0 <= t <= 1
+```
+
+If the baseline length is zero, SurveyCalcKit returns a warning and avoids division by zero.
+
 ## Elevation Closure Error
 
 Given known start and end elevations and observed first/last point elevations:

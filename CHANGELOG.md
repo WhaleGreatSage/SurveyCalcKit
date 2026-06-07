@@ -6,6 +6,16 @@ All notable changes to this project will be documented in this file.
 
 No unreleased changes.
 
+## v0.1.5 - 2026-06-07
+
+- Added coordinate forward calculation from start point, azimuth, and distance.
+- Added chainage and offset calculation against a straight baseline segment.
+- Added CLI `forward` and `offset` commands.
+- Added WinForms `Calculate Forward` and `Calculate Offset` actions.
+- Added coordinate forward and chainage/offset samples.
+- Added unit tests for new parsers and calculators.
+- Updated README, usage guide, formulas, and roadmap documentation.
+
 ## v0.1.4 - 2026-06-05
 
 - Added Excel `.xlsx` point import using ClosedXML.

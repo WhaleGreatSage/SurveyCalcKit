@@ -25,6 +25,8 @@ dotnet run --project src/SurveyCalcKit.Cli -- traverse samples/traverse_sample.t
 dotnet run --project src/SurveyCalcKit.Cli -- elevation samples/elevation_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- closure samples/closed_traverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- leveling samples/leveling_route_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- forward samples/coordinate_forward_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- offset samples/chainage_offset_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- transform samples/transform_sample.txt --dx 500 --dy 1000 --scale 1.0002 --angle 15
 ```
 
@@ -135,6 +137,60 @@ The report includes:
 - raw and adjusted elevations
 - warnings for empty input, negative sight values, or large closure error
 
+## Coordinate Forward Calculation
+
+Use the `forward` command to calculate an endpoint from a start point, azimuth, and horizontal distance:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- forward samples/coordinate_forward_sample.txt
+```
+
+Input format:
+
+```text
+START P1 1000.000 1000.000
+AZIMUTH 53.130102
+DISTANCE 50.000
+END P2
+```
+
+Comma-separated input is also supported:
+
+```text
+START,P1,1000.000,1000.000
+AZIMUTH,53.130102
+DISTANCE,50.000
+END,P2
+```
+
+The report includes the normalized azimuth, distance, delta X, delta Y, endpoint name, endpoint coordinates, and warnings.
+
+## Chainage and Offset Calculation
+
+Use the `offset` command to calculate a target point's projected chainage and perpendicular offset relative to a straight baseline:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- offset samples/chainage_offset_sample.txt
+```
+
+Input format:
+
+```text
+BASELINE A 1000.000 1000.000 B 1100.000 1000.000
+START_CHAINAGE 0.000
+POINT P1 1050.000 1025.000
+```
+
+Comma-separated input is also supported:
+
+```text
+BASELINE,A,1000.000,1000.000,B,1100.000,1000.000
+START_CHAINAGE,0.000
+POINT,P1,1050.000,1025.000
+```
+
+The report includes baseline length, projection coordinates, chainage, offset, side, whether the projection is inside the segment, and warnings for weak input.
+
 ## WinForms
 
 Run on Windows:
@@ -143,4 +199,4 @@ Run on Windows:
 dotnet run --project src/SurveyCalcKit.WinForms
 ```
 
-Paste or import point records into the left text box, then calculate traverse, elevation, leveling, or closure reports. Use `导入 Excel` to populate the input box from an Excel point workbook. Use `导出 Excel` to save the current report to an `.xlsx` workbook. Export saves the current report as a text file.
+Paste or import point records into the left text box, then calculate traverse, elevation, leveling, closure, coordinate forward, or chainage/offset reports. Use `导入 Excel` to populate the input box from an Excel point workbook. Use `导出 Excel` to save the current report to an `.xlsx` workbook. Export saves the current report as a text file.

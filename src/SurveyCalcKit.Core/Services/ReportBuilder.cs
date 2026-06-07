@@ -247,6 +247,135 @@ public sealed class ReportBuilder
         return builder.ToString();
     }
 
+    public string BuildCoordinateForwardReport(
+        CoordinateForwardParseResult parseResult,
+        CoordinateForwardResult result,
+        ReportLanguage language = ReportLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+        ArgumentNullException.ThrowIfNull(result);
+
+        var builder = new StringBuilder();
+        AppendTitle(builder, language, "SurveyCalcKit Coordinate Forward Report", "SurveyCalcKit 坐标正算报告");
+        if (!parseResult.IsSuccess)
+        {
+            AppendParseErrors(builder, parseResult.Errors, language);
+            return builder.ToString();
+        }
+
+        AppendLine(
+            builder,
+            language,
+            $"Start point: {result.StartPointName}",
+            $"起点: {result.StartPointName}");
+        AppendLine(
+            builder,
+            language,
+            $"Start coordinates: X={FormatNumber(result.StartX)}, Y={FormatNumber(result.StartY)}",
+            $"起点坐标: X={FormatNumber(result.StartX)}, Y={FormatNumber(result.StartY)}");
+        AppendLine(
+            builder,
+            language,
+            $"Azimuth: {FormatNumber(result.AzimuthDegrees)} degrees",
+            $"方位角: {FormatNumber(result.AzimuthDegrees)} 度");
+        AppendLine(
+            builder,
+            language,
+            $"Distance: {FormatNumber(result.Distance)}",
+            $"距离: {FormatNumber(result.Distance)}");
+        AppendLine(
+            builder,
+            language,
+            $"Delta X: {FormatNumber(result.DeltaX)}",
+            $"坐标增量 X: {FormatNumber(result.DeltaX)}");
+        AppendLine(
+            builder,
+            language,
+            $"Delta Y: {FormatNumber(result.DeltaY)}",
+            $"坐标增量 Y: {FormatNumber(result.DeltaY)}");
+        AppendLine(
+            builder,
+            language,
+            $"End point: {result.EndPointName}",
+            $"终点: {result.EndPointName}");
+        AppendLine(
+            builder,
+            language,
+            $"End coordinates: X={FormatNumber(result.EndX)}, Y={FormatNumber(result.EndY)}",
+            $"终点坐标: X={FormatNumber(result.EndX)}, Y={FormatNumber(result.EndY)}");
+
+        AppendWarnings(builder, result.Warnings, language);
+        AppendParseErrors(builder, parseResult.Errors, language);
+        return builder.ToString();
+    }
+
+    public string BuildChainageOffsetReport(
+        ChainageOffsetParseResult parseResult,
+        ChainageOffsetResult result,
+        ReportLanguage language = ReportLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+        ArgumentNullException.ThrowIfNull(result);
+
+        var builder = new StringBuilder();
+        AppendTitle(builder, language, "SurveyCalcKit Chainage/Offset Report", "SurveyCalcKit 里程与偏距计算报告");
+        if (!parseResult.IsSuccess)
+        {
+            AppendParseErrors(builder, parseResult.Errors, language);
+            return builder.ToString();
+        }
+
+        AppendLine(
+            builder,
+            language,
+            $"Baseline: {result.BaselineStartName} -> {result.BaselineEndName}",
+            $"基线: {result.BaselineStartName} -> {result.BaselineEndName}");
+        AppendLine(
+            builder,
+            language,
+            $"Target point: {result.TargetPointName}",
+            $"目标点: {result.TargetPointName}");
+        AppendLine(
+            builder,
+            language,
+            $"Baseline length: {FormatNumber(result.BaselineLength)}",
+            $"基线长度: {FormatNumber(result.BaselineLength)}");
+        AppendLine(
+            builder,
+            language,
+            $"Projection ratio: {FormatNumber(result.ProjectionRatio)}",
+            $"投影比例: {FormatNumber(result.ProjectionRatio)}");
+        AppendLine(
+            builder,
+            language,
+            $"Projection coordinates: X={FormatNumber(result.ProjectionX)}, Y={FormatNumber(result.ProjectionY)}",
+            $"投影点坐标: X={FormatNumber(result.ProjectionX)}, Y={FormatNumber(result.ProjectionY)}");
+        AppendLine(
+            builder,
+            language,
+            $"Chainage: {FormatNumber(result.Chainage)}",
+            $"里程: {FormatNumber(result.Chainage)}");
+        AppendLine(
+            builder,
+            language,
+            $"Offset: {FormatNumber(result.Offset)}",
+            $"偏距: {FormatNumber(result.Offset)}");
+        AppendLine(
+            builder,
+            language,
+            $"Side: {result.Side}",
+            $"方向: {FormatSide(result.Side, language)}");
+        AppendLine(
+            builder,
+            language,
+            $"Projection inside segment: {FormatBoolean(result.ProjectionInsideSegment, language)}",
+            $"投影位于线段内: {FormatBoolean(result.ProjectionInsideSegment, language)}");
+
+        AppendWarnings(builder, result.Warnings, language);
+        AppendParseErrors(builder, parseResult.Errors, language);
+        return builder.ToString();
+    }
+
     private static void AppendTitle(StringBuilder builder, ReportLanguage language, string english, string chinese)
     {
         AppendLine(builder, language, english, chinese);
@@ -501,5 +630,32 @@ public sealed class ReportBuilder
         return double.IsPositiveInfinity(ratio)
             ? "infinity (perfect closure)"
             : $"1:{FormatNumber(ratio)}";
+    }
+
+    private static string FormatBoolean(bool value, ReportLanguage language)
+    {
+        if (language == ReportLanguage.English)
+        {
+            return value ? "Yes" : "No";
+        }
+
+        return value ? "是" : "否";
+    }
+
+    private static string FormatSide(string side, ReportLanguage language)
+    {
+        if (language == ReportLanguage.English)
+        {
+            return side;
+        }
+
+        return side switch
+        {
+            "Left" => "左侧",
+            "Right" => "右侧",
+            "OnLine" => "在线上",
+            "Undefined" => "未定义",
+            _ => side
+        };
     }
 }

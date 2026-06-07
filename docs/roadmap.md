@@ -17,6 +17,8 @@ SurveyCalcKit is intended to grow slowly and remain beginner-friendly.
 - Closed traverse closure calculation and Bowditch adjustment.
 - Leveling route closure check and simple height adjustment.
 - Excel import/export for point data and calculation results.
+- Coordinate forward calculation from start point, azimuth, and distance.
+- Chainage and offset calculation for target points against a straight baseline.
 - More report formatting options.
 - Optional Chinese UI labels.
 - CSV export for segment tables.
@@ -30,6 +32,9 @@ SurveyCalcKit is intended to grow slowly and remain beginner-friendly.
 ## Later Ideas
 
 - Spreadsheet import/export helpers.
+- Batch chainage/offset calculation for multiple target points.
+- Road curve element calculation.
+- Stakeout report export.
 - More coordinate transformation modes.
 - Additional surveying formulas with worked examples.
 - Better localization infrastructure.

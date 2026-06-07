@@ -37,6 +37,8 @@ partial class Form1
         calculateElevationButton = new Button();
         calculateLevelingButton = new Button();
         calculateClosureButton = new Button();
+        calculateForwardButton = new Button();
+        calculateOffsetButton = new Button();
         exportExcelButton = new Button();
         exportReportButton = new Button();
         clearButton = new Button();
@@ -142,13 +144,35 @@ partial class Form1
         calculateClosureButton.UseVisualStyleBackColor = true;
         calculateClosureButton.Click += CalculateClosureButton_Click;
         //
+        // calculateForwardButton
+        //
+        calculateForwardButton.AutoSize = true;
+        calculateForwardButton.Location = new Point(737, 3);
+        calculateForwardButton.Name = "calculateForwardButton";
+        calculateForwardButton.Size = new Size(119, 30);
+        calculateForwardButton.TabIndex = 6;
+        calculateForwardButton.Text = "Calculate Forward";
+        calculateForwardButton.UseVisualStyleBackColor = true;
+        calculateForwardButton.Click += CalculateForwardButton_Click;
+        //
+        // calculateOffsetButton
+        //
+        calculateOffsetButton.AutoSize = true;
+        calculateOffsetButton.Location = new Point(862, 3);
+        calculateOffsetButton.Name = "calculateOffsetButton";
+        calculateOffsetButton.Size = new Size(111, 30);
+        calculateOffsetButton.TabIndex = 7;
+        calculateOffsetButton.Text = "Calculate Offset";
+        calculateOffsetButton.UseVisualStyleBackColor = true;
+        calculateOffsetButton.Click += CalculateOffsetButton_Click;
+        //
         // exportExcelButton
         //
         exportExcelButton.AutoSize = true;
-        exportExcelButton.Location = new Point(737, 3);
+        exportExcelButton.Location = new Point(979, 3);
         exportExcelButton.Name = "exportExcelButton";
         exportExcelButton.Size = new Size(91, 30);
-        exportExcelButton.TabIndex = 6;
+        exportExcelButton.TabIndex = 8;
         exportExcelButton.Text = "导出 Excel";
         exportExcelButton.UseVisualStyleBackColor = true;
         exportExcelButton.Click += ExportExcelButton_Click;
@@ -156,10 +180,10 @@ partial class Form1
         // exportReportButton
         //
         exportReportButton.AutoSize = true;
-        exportReportButton.Location = new Point(834, 3);
+        exportReportButton.Location = new Point(3, 39);
         exportReportButton.Name = "exportReportButton";
         exportReportButton.Size = new Size(105, 30);
-        exportReportButton.TabIndex = 7;
+        exportReportButton.TabIndex = 9;
         exportReportButton.Text = "Export Report";
         exportReportButton.UseVisualStyleBackColor = true;
         exportReportButton.Click += ExportReportButton_Click;
@@ -167,10 +191,10 @@ partial class Form1
         // clearButton
         //
         clearButton.AutoSize = true;
-        clearButton.Location = new Point(945, 3);
+        clearButton.Location = new Point(114, 39);
         clearButton.Name = "clearButton";
         clearButton.Size = new Size(75, 30);
-        clearButton.TabIndex = 8;
+        clearButton.TabIndex = 10;
         clearButton.Text = "Clear";
         clearButton.UseVisualStyleBackColor = true;
         clearButton.Click += ClearButton_Click;
@@ -197,8 +221,8 @@ partial class Form1
         rootLayout.Name = "rootLayout";
         rootLayout.RowCount = 2;
         rootLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-        rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48F));
-        rootLayout.Size = new Size(1081, 614);
+        rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 86F));
+        rootLayout.Size = new Size(1081, 652);
         rootLayout.TabIndex = 0;
         //
         // textLayout
@@ -224,6 +248,8 @@ partial class Form1
         buttonPanel.Controls.Add(calculateElevationButton);
         buttonPanel.Controls.Add(calculateLevelingButton);
         buttonPanel.Controls.Add(calculateClosureButton);
+        buttonPanel.Controls.Add(calculateForwardButton);
+        buttonPanel.Controls.Add(calculateOffsetButton);
         buttonPanel.Controls.Add(exportExcelButton);
         buttonPanel.Controls.Add(exportReportButton);
         buttonPanel.Controls.Add(clearButton);
@@ -231,16 +257,16 @@ partial class Form1
         buttonPanel.Location = new Point(3, 569);
         buttonPanel.Name = "buttonPanel";
         buttonPanel.Padding = new Padding(0, 3, 0, 0);
-        buttonPanel.Size = new Size(1075, 42);
+        buttonPanel.Size = new Size(1075, 80);
         buttonPanel.TabIndex = 1;
         //
         // Form1
         //
         AutoScaleDimensions = new SizeF(7F, 17F);
         AutoScaleMode = AutoScaleMode.Font;
-        ClientSize = new Size(1081, 614);
+        ClientSize = new Size(1081, 652);
         Controls.Add(rootLayout);
-        MinimumSize = new Size(900, 520);
+        MinimumSize = new Size(1000, 560);
         Name = "Form1";
         StartPosition = FormStartPosition.CenterScreen;
         Text = "SurveyCalcKit";
@@ -262,6 +288,8 @@ partial class Form1
     private Button calculateElevationButton;
     private Button calculateLevelingButton;
     private Button calculateClosureButton;
+    private Button calculateForwardButton;
+    private Button calculateOffsetButton;
     private Button exportExcelButton;
     private Button exportReportButton;
     private Button clearButton;

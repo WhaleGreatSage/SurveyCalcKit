@@ -10,6 +10,8 @@ public partial class Form1 : Form
     private readonly TraverseCalculator traverseCalculator = new();
     private readonly ClosedTraverseCalculator closedTraverseCalculator = new();
     private readonly LevelingRouteCalculator levelingRouteCalculator = new();
+    private readonly CoordinateForwardCalculator coordinateForwardCalculator = new();
+    private readonly ChainageOffsetCalculator chainageOffsetCalculator = new();
     private readonly ExcelService excelService = new();
     private readonly ReportBuilder reportBuilder = new();
 
@@ -121,6 +123,38 @@ public partial class Form1 : Form
         reportOutputTextBox.Text = reportBuilder.BuildClosureReport(parseResult, closureResult, ReportLanguage.English);
     }
 
+    private void CalculateForwardButton_Click(object? sender, EventArgs e)
+    {
+        var parseResult = parseService.ParseCoordinateForward(rawInputTextBox.Text);
+        if (!parseResult.IsSuccess)
+        {
+            reportOutputTextBox.Text = reportBuilder.BuildCoordinateForwardReport(
+                parseResult,
+                CreateEmptyForwardResult(),
+                ReportLanguage.English);
+            return;
+        }
+
+        var result = coordinateForwardCalculator.Calculate(parseResult.Input!);
+        reportOutputTextBox.Text = reportBuilder.BuildCoordinateForwardReport(parseResult, result, ReportLanguage.English);
+    }
+
+    private void CalculateOffsetButton_Click(object? sender, EventArgs e)
+    {
+        var parseResult = parseService.ParseChainageOffset(rawInputTextBox.Text);
+        if (!parseResult.IsSuccess)
+        {
+            reportOutputTextBox.Text = reportBuilder.BuildChainageOffsetReport(
+                parseResult,
+                CreateEmptyChainageOffsetResult(),
+                ReportLanguage.English);
+            return;
+        }
+
+        var result = chainageOffsetCalculator.Calculate(parseResult.Input!);
+        reportOutputTextBox.Text = reportBuilder.BuildChainageOffsetReport(parseResult, result, ReportLanguage.English);
+    }
+
     private void ExportReportButton_Click(object? sender, EventArgs e)
     {
         if (string.IsNullOrWhiteSpace(reportOutputTextBox.Text))
@@ -198,6 +232,16 @@ public partial class Form1 : Form
         return point.H.HasValue
             ? $"{point.Name} {FormatNumber(point.X)} {FormatNumber(point.Y)} {FormatNumber(point.H.Value)}"
             : $"{point.Name} {FormatNumber(point.X)} {FormatNumber(point.Y)}";
+    }
+
+    private static CoordinateForwardResult CreateEmptyForwardResult()
+    {
+        return new CoordinateForwardResult(string.Empty, 0, 0, 0, 0, 0, 0, string.Empty, 0, 0, new List<string>());
+    }
+
+    private static ChainageOffsetResult CreateEmptyChainageOffsetResult()
+    {
+        return new ChainageOffsetResult(string.Empty, string.Empty, string.Empty, 0, 0, 0, 0, "Undefined", false, 0, 0, new List<string>());
     }
 
     private static string FormatNumber(double value)
