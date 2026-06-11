@@ -11,7 +11,11 @@ public partial class Form1 : Form
     private readonly ClosedTraverseCalculator closedTraverseCalculator = new();
     private readonly LevelingRouteCalculator levelingRouteCalculator = new();
     private readonly CoordinateForwardCalculator coordinateForwardCalculator = new();
+    private readonly CoordinateInverseCalculator coordinateInverseCalculator = new();
     private readonly ChainageOffsetCalculator chainageOffsetCalculator = new();
+    private readonly BatchSegmentTableCalculator batchSegmentTableCalculator = new();
+    private readonly AngleConverter angleConverter = new();
+    private readonly MarkdownReportExporter markdownReportExporter = new();
     private readonly ExcelService excelService = new();
     private readonly ReportBuilder reportBuilder = new();
 
@@ -155,6 +159,50 @@ public partial class Form1 : Form
         reportOutputTextBox.Text = reportBuilder.BuildChainageOffsetReport(parseResult, result, ReportLanguage.English);
     }
 
+    private void CalculateInverseButton_Click(object? sender, EventArgs e)
+    {
+        var parseResult = parseService.ParseCoordinateInverse(rawInputTextBox.Text);
+        if (!parseResult.IsSuccess)
+        {
+            reportOutputTextBox.Text = reportBuilder.BuildCoordinateInverseReport(
+                parseResult,
+                CreateEmptyInverseResult(),
+                ReportLanguage.English);
+            return;
+        }
+
+        var result = coordinateInverseCalculator.Calculate(parseResult.Input!);
+        reportOutputTextBox.Text = reportBuilder.BuildCoordinateInverseReport(parseResult, result, ReportLanguage.English);
+    }
+
+    private void CalculateSegmentsButton_Click(object? sender, EventArgs e)
+    {
+        var parseResult = parseService.ParsePoints(rawInputTextBox.Text);
+        if (!TryShowParseErrors(parseResult))
+        {
+            return;
+        }
+
+        var result = batchSegmentTableCalculator.Calculate(parseResult.Points);
+        reportOutputTextBox.Text = reportBuilder.BuildBatchSegmentTableReport(parseResult, result, ReportLanguage.English);
+    }
+
+    private void ConvertAngleButton_Click(object? sender, EventArgs e)
+    {
+        var value = rawInputTextBox.Text.Trim();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            ShowError("Enter a decimal degree or DMS angle value in the raw input box.");
+            return;
+        }
+
+        var input = double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var decimalDegrees)
+            ? new AngleConversionInput(decimalDegrees, null, null)
+            : new AngleConversionInput(null, value, null);
+        var result = angleConverter.Convert(input);
+        reportOutputTextBox.Text = reportBuilder.BuildAngleConversionReport(result, ReportLanguage.English);
+    }
+
     private void ExportReportButton_Click(object? sender, EventArgs e)
     {
         if (string.IsNullOrWhiteSpace(reportOutputTextBox.Text))
@@ -175,6 +223,33 @@ public partial class Form1 : Form
         catch (IOException ex)
         {
             ShowError($"Could not export report: {ex.Message}");
+        }
+    }
+
+    private void ExportMarkdownButton_Click(object? sender, EventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(reportOutputTextBox.Text))
+        {
+            ShowError("There is no report to export.");
+            return;
+        }
+
+        using var dialog = new SaveFileDialog
+        {
+            DefaultExt = "md",
+            Filter = "Markdown report (*.md)|*.md|All files (*.*)|*.*",
+            Title = "Export Markdown report"
+        };
+
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        var result = markdownReportExporter.Export("SurveyCalcKit Report", reportOutputTextBox.Text, dialog.FileName);
+        if (!result.IsSuccess)
+        {
+            ShowError(string.Join(Environment.NewLine, result.Errors.Concat(result.Warnings)));
         }
     }
 
@@ -242,6 +317,11 @@ public partial class Form1 : Form
     private static ChainageOffsetResult CreateEmptyChainageOffsetResult()
     {
         return new ChainageOffsetResult(string.Empty, string.Empty, string.Empty, 0, 0, 0, 0, "Undefined", false, 0, 0, new List<string>());
+    }
+
+    private static CoordinateInverseResult CreateEmptyInverseResult()
+    {
+        return new CoordinateInverseResult(string.Empty, string.Empty, 0, 0, 0, 0, null, null, new List<string>());
     }
 
     private static string FormatNumber(double value)

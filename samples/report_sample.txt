@@ -1,0 +1,3 @@
+SurveyCalcKit Sample Report
+Point count: 4
+Total length: 135.320

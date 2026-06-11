@@ -11,7 +11,11 @@ internal static class SurveyCalcCli
     private static readonly ClosedTraverseCalculator ClosedTraverseCalculator = new();
     private static readonly LevelingRouteCalculator LevelingRouteCalculator = new();
     private static readonly CoordinateForwardCalculator CoordinateForwardCalculator = new();
+    private static readonly CoordinateInverseCalculator CoordinateInverseCalculator = new();
     private static readonly ChainageOffsetCalculator ChainageOffsetCalculator = new();
+    private static readonly BatchSegmentTableCalculator BatchSegmentTableCalculator = new();
+    private static readonly AngleConverter AngleConverter = new();
+    private static readonly MarkdownReportExporter MarkdownReportExporter = new();
     private static readonly CoordinateTransformService TransformService = new();
     private static readonly ExcelService ExcelService = new();
     private static readonly ReportBuilder ReportBuilder = new();
@@ -35,7 +39,11 @@ internal static class SurveyCalcCli
             "closure" => RunClosure(commandArgs),
             "leveling" => RunLeveling(commandArgs),
             "forward" => RunForward(commandArgs),
+            "inverse" => RunInverse(commandArgs),
             "offset" => RunOffset(commandArgs),
+            "segments" => RunSegments(commandArgs),
+            "angle" => RunAngle(commandArgs),
+            "export-md" => RunExportMarkdown(commandArgs),
             "transform" => RunTransform(commandArgs),
             _ => Fail($"Unknown command '{commandArgs[0]}'.")
         };
@@ -273,6 +281,101 @@ internal static class SurveyCalcCli
         var result = ChainageOffsetCalculator.Calculate(parseResult.Input!);
         Console.WriteLine(ReportBuilder.BuildChainageOffsetReport(parseResult, result));
         return result.BaselineLength > 0 ? 0 : 1;
+    }
+
+    private static int RunInverse(string[] args)
+    {
+        if (!TryReadFileArgument(args, out var text))
+        {
+            return 1;
+        }
+
+        var parseResult = Parser.ParseCoordinateInverse(text);
+        if (!parseResult.IsSuccess)
+        {
+            Console.Error.WriteLine(ReportBuilder.BuildCoordinateInverseReport(
+                parseResult,
+                CreateEmptyInverseResult(),
+                ReportLanguage.English));
+            return 1;
+        }
+
+        var result = CoordinateInverseCalculator.Calculate(parseResult.Input!);
+        Console.WriteLine(ReportBuilder.BuildCoordinateInverseReport(parseResult, result));
+        return 0;
+    }
+
+    private static int RunSegments(string[] args)
+    {
+        if (!TryReadFileArgument(args, out var text))
+        {
+            return 1;
+        }
+
+        var parseResult = Parser.ParsePoints(text);
+        if (!EnsureValidParseResult(parseResult))
+        {
+            return 1;
+        }
+
+        var result = BatchSegmentTableCalculator.Calculate(parseResult.Points);
+        Console.WriteLine(ReportBuilder.BuildBatchSegmentTableReport(parseResult, result));
+        return result.SegmentCount > 0 ? 0 : 1;
+    }
+
+    private static int RunAngle(string[] args)
+    {
+        if (args.Length < 2 || IsHelp(args[1]))
+        {
+            PrintUsage();
+            return 1;
+        }
+
+        var value = args[1];
+        var input = TryParseDouble(value, out var decimalDegrees)
+            ? new AngleConversionInput(decimalDegrees, null, null)
+            : new AngleConversionInput(null, value, null);
+        var result = AngleConverter.Convert(input);
+        Console.WriteLine(ReportBuilder.BuildAngleConversionReport(result));
+
+        return result.Warnings.Count == 0 ? 0 : 1;
+    }
+
+    private static int RunExportMarkdown(string[] args)
+    {
+        if (args.Length < 3 || IsHelp(args[1]))
+        {
+            PrintUsage();
+            return 1;
+        }
+
+        var inputPath = args[1];
+        var outputPath = args[2];
+        if (!File.Exists(inputPath))
+        {
+            return Fail($"File not found: {inputPath}");
+        }
+
+        var reportText = File.ReadAllText(inputPath);
+        var title = Path.GetFileNameWithoutExtension(inputPath);
+        var result = MarkdownReportExporter.Export(title, reportText, outputPath);
+        foreach (var warning in result.Warnings)
+        {
+            Console.Error.WriteLine($"Warning: {warning}");
+        }
+
+        if (!result.IsSuccess)
+        {
+            foreach (var error in result.Errors)
+            {
+                Console.Error.WriteLine(error);
+            }
+
+            return 1;
+        }
+
+        Console.WriteLine($"Markdown exported: {result.FilePath}");
+        return 0;
     }
 
     private static int RunTransform(string[] args)
@@ -522,6 +625,20 @@ internal static class SurveyCalcCli
             new List<string>());
     }
 
+    private static CoordinateInverseResult CreateEmptyInverseResult()
+    {
+        return new CoordinateInverseResult(
+            string.Empty,
+            string.Empty,
+            0,
+            0,
+            0,
+            0,
+            null,
+            null,
+            new List<string>());
+    }
+
     private static string FormatNumber(double value)
     {
         return value.ToString("0.###", CultureInfo.InvariantCulture);
@@ -553,7 +670,11 @@ internal static class SurveyCalcCli
               surveycalc closure <file>
               surveycalc leveling <file>
               surveycalc forward <file>
+              surveycalc inverse <file>
               surveycalc offset <file>
+              surveycalc segments <file>
+              surveycalc angle <value>
+              surveycalc export-md <input-report.txt> <output.md>
               surveycalc transform <file> --dx <value> --dy <value> --scale <value> --angle <degrees>
 
             Input rows:
@@ -572,6 +693,10 @@ internal static class SurveyCalcCli
               AZIMUTH 53.130102
               DISTANCE 50.000
               END P2
+
+            Coordinate inverse rows:
+              FROM P1 1000.000 1000.000 12.500
+              TO P2 1050.000 1040.000 13.200
 
             Chainage/offset rows:
               BASELINE A 1000.000 1000.000 B 1100.000 1000.000

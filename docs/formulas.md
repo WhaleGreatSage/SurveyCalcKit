@@ -111,6 +111,85 @@ Y1 = Y0 + DeltaY
 
 Azimuth input is normalized to `0` through `360` before calculation. Zero distance is valid and returns the start coordinate. Negative distance is reported as a warning and is not used as a signed reverse direction.
 
+## Coordinate Inverse Calculation
+
+Given two known points:
+
+```text
+From = (X1, Y1, H1)
+To = (X2, Y2, H2)
+```
+
+SurveyCalcKit calculates:
+
+```text
+DeltaX = X2 - X1
+DeltaY = Y2 - Y1
+Distance2D = sqrt(DeltaX^2 + DeltaY^2)
+AzimuthDegrees = atan2(DeltaY, DeltaX) * 180 / pi
+```
+
+The azimuth uses the same convention as traverse calculations: degrees counterclockwise from the positive X axis, normalized to `0` through `360`.
+
+If both heights exist:
+
+```text
+DeltaH = H2 - H1
+Distance3D = sqrt(Distance2D^2 + DeltaH^2)
+```
+
+If the two coordinates are identical or extremely close, SurveyCalcKit reports a warning and uses `0` degrees for azimuth.
+
+## Batch Segment Table
+
+For a point sequence, each row is calculated from consecutive points:
+
+```text
+Row_i = Point_i -> Point_(i+1)
+```
+
+The row uses the same segment formulas for `DeltaX`, `DeltaY`, `Distance2D`, `AzimuthDegrees`, `DeltaH`, and `SlopePercent`.
+
+Cumulative distance is:
+
+```text
+CumulativeDistance_i = sum(Distance2D_1 ... Distance2D_i)
+```
+
+Repeated consecutive coordinates are reported as warnings because distance and slope checks may be weak.
+
+## Angle Format Conversion
+
+Decimal degrees to degrees-minutes-seconds:
+
+```text
+Degrees = floor(abs(decimalDegrees))
+MinutesFloat = (abs(decimalDegrees) - Degrees) * 60
+Minutes = floor(MinutesFloat)
+Seconds = (MinutesFloat - Minutes) * 60
+```
+
+The sign is preserved for negative angles:
+
+```text
+-12.5 degrees = -12°30'00.00"
+```
+
+Degrees-minutes-seconds to decimal degrees:
+
+```text
+DecimalDegrees = sign * (Degrees + Minutes / 60 + Seconds / 3600)
+```
+
+Degree-radian conversion:
+
+```text
+Radians = DecimalDegrees * pi / 180
+DecimalDegrees = Radians * 180 / pi
+```
+
+DMS output is rounded for display only. Calculations use the decimal degree value.
+
 ## Chainage and Offset Projection
 
 Given a baseline from start point `A` to end point `B`, and a target point `P`:

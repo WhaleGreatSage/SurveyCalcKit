@@ -18,6 +18,10 @@ SurveyCalcKit is intended to grow slowly and remain beginner-friendly.
 - Leveling route closure check and simple height adjustment.
 - Excel import/export for point data and calculation results.
 - Coordinate forward calculation from start point, azimuth, and distance.
+- Coordinate inverse calculation between two known points.
+- Batch segment table generation with cumulative distance.
+- Angle format conversion between decimal degrees, DMS, and radians.
+- Markdown report export for coursework and GitHub documentation.
 - Chainage and offset calculation for target points against a straight baseline.
 - More report formatting options.
 - Optional Chinese UI labels.
@@ -33,6 +37,11 @@ SurveyCalcKit is intended to grow slowly and remain beginner-friendly.
 
 - Spreadsheet import/export helpers.
 - Batch chainage/offset calculation for multiple target points.
+- Batch coordinate inverse import.
+- Multi-point offset calculation.
+- PDF report export.
+- Localization resource files.
+- Plugin-style calculation modules.
 - Road curve element calculation.
 - Stakeout report export.
 - More coordinate transformation modes.

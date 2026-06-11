@@ -26,7 +26,11 @@ dotnet run --project src/SurveyCalcKit.Cli -- elevation samples/elevation_sample
 dotnet run --project src/SurveyCalcKit.Cli -- closure samples/closed_traverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- leveling samples/leveling_route_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- forward samples/coordinate_forward_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- inverse samples/coordinate_inverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- offset samples/chainage_offset_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- segments samples/batch_segments_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- angle 53.130102
+dotnet run --project src/SurveyCalcKit.Cli -- export-md samples/report_sample.txt output/report.md
 dotnet run --project src/SurveyCalcKit.Cli -- transform samples/transform_sample.txt --dx 500 --dy 1000 --scale 1.0002 --angle 15
 ```
 
@@ -191,6 +195,74 @@ POINT,P1,1050.000,1025.000
 
 The report includes baseline length, projection coordinates, chainage, offset, side, whether the projection is inside the segment, and warnings for weak input.
 
+## Coordinate Inverse Calculation
+
+Use the `inverse` command to calculate coordinate differences, 2D distance, azimuth, optional delta H, and optional 3D distance between two known points:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- inverse samples/coordinate_inverse_sample.txt
+```
+
+Input format:
+
+```text
+FROM P1 1000.000 1000.000 12.500
+TO P2 1050.000 1040.000 13.200
+```
+
+Comma-separated input is also supported:
+
+```text
+FROM,P1,1000.000,1000.000,12.500
+TO,P2,1050.000,1040.000,13.200
+```
+
+## Batch Segment Table
+
+Use the `segments` command to generate a consecutive segment table with cumulative distance:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- segments samples/batch_segments_sample.txt
+```
+
+The input uses ordinary point rows:
+
+```text
+P1 1000.000 1000.000 12.500
+P2 1030.000 1040.000 12.800
+P3 1070.000 1060.000 13.100
+P4 1100.000 1015.000 12.900
+```
+
+## Angle Format Converter
+
+Use the `angle` command with either decimal degrees or DMS text:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- angle 53.130102
+dotnet run --project src/SurveyCalcKit.Cli -- angle "53 7 48.37"
+```
+
+Supported DMS examples include:
+
+```text
+53°07'48.37"
+53 7 48.37
+53:7:48.37
+```
+
+DMS precision is rounded for display only; calculations use the underlying decimal degree value.
+
+## Markdown Report Export
+
+Use `export-md` to convert a plain text report into a UTF-8 Markdown file:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- export-md samples/report_sample.txt output/report.md
+```
+
+The Markdown document includes a title, generation timestamp, and fenced text block that preserves line breaks.
+
 ## WinForms
 
 Run on Windows:
@@ -199,4 +271,4 @@ Run on Windows:
 dotnet run --project src/SurveyCalcKit.WinForms
 ```
 
-Paste or import point records into the left text box, then calculate traverse, elevation, leveling, closure, coordinate forward, or chainage/offset reports. Use `导入 Excel` to populate the input box from an Excel point workbook. Use `导出 Excel` to save the current report to an `.xlsx` workbook. Export saves the current report as a text file.
+Paste or import point records into the left text box, then calculate traverse, elevation, leveling, closure, coordinate forward, coordinate inverse, batch segment, angle conversion, or chainage/offset reports. Use `导入 Excel` to populate the input box from an Excel point workbook. Use `导出 Excel` to save the current report to an `.xlsx` workbook. `Export Markdown` saves the current report as `.md`, and `Export Report` saves it as a text file.

@@ -474,6 +474,114 @@ public sealed class ParseService
             errors);
     }
 
+    public CoordinateInverseParseResult ParseCoordinateInverse(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        string? fromPointName = null;
+        string? toPointName = null;
+        double? fromX = null;
+        double? fromY = null;
+        double? fromH = null;
+        double? toX = null;
+        double? toY = null;
+        double? toH = null;
+        var errors = new List<ParseError>();
+
+        using var reader = new StringReader(text);
+        var lineNumber = 0;
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            lineNumber++;
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0)
+            {
+                continue;
+            }
+
+            var fields = SplitFields(trimmed);
+            if (fields.Length is not (4 or 5))
+            {
+                errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: Expected 4 or 5 fields: FROM/TO name X Y [H]."));
+                continue;
+            }
+
+            var keyword = fields[0].ToUpperInvariant();
+            if (keyword is not ("FROM" or "TO"))
+            {
+                errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: Expected FROM or TO, but found '{fields[0]}'."));
+                continue;
+            }
+
+            if (!TryParseNumber(fields[2], out var x))
+            {
+                errors.Add(CreateNumericError(lineNumber, line, $"{keyword} X", fields[2]));
+                continue;
+            }
+
+            if (!TryParseNumber(fields[3], out var y))
+            {
+                errors.Add(CreateNumericError(lineNumber, line, $"{keyword} Y", fields[3]));
+                continue;
+            }
+
+            double? h = null;
+            if (fields.Length == 5)
+            {
+                if (!TryParseNumber(fields[4], out var parsedH))
+                {
+                    errors.Add(CreateNumericError(lineNumber, line, $"{keyword} H", fields[4]));
+                    continue;
+                }
+
+                h = parsedH;
+            }
+
+            if (keyword == "FROM")
+            {
+                fromPointName = fields[1];
+                fromX = x;
+                fromY = y;
+                fromH = h;
+            }
+            else
+            {
+                toPointName = fields[1];
+                toX = x;
+                toY = y;
+                toH = h;
+            }
+        }
+
+        if (fromPointName is null || !fromX.HasValue || !fromY.HasValue)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Coordinate inverse input requires FROM name X Y [H]."));
+        }
+
+        if (toPointName is null || !toX.HasValue || !toY.HasValue)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Coordinate inverse input requires TO name X Y [H]."));
+        }
+
+        if (errors.Count > 0)
+        {
+            return new CoordinateInverseParseResult(null, errors);
+        }
+
+        return new CoordinateInverseParseResult(
+            new CoordinateInverseInput(
+                fromPointName!,
+                fromX!.Value,
+                fromY!.Value,
+                fromH,
+                toPointName!,
+                toX!.Value,
+                toY!.Value,
+                toH),
+            errors);
+    }
+
     private static string[] SplitFields(string line)
     {
         if (line.Contains(','))

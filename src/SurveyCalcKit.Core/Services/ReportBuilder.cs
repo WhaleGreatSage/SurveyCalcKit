@@ -376,6 +376,74 @@ public sealed class ReportBuilder
         return builder.ToString();
     }
 
+    public string BuildCoordinateInverseReport(
+        CoordinateInverseParseResult parseResult,
+        CoordinateInverseResult result,
+        ReportLanguage language = ReportLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+        ArgumentNullException.ThrowIfNull(result);
+
+        var builder = new StringBuilder();
+        AppendTitle(builder, language, "SurveyCalcKit Coordinate Inverse Report", "SurveyCalcKit 坐标反算报告");
+        if (!parseResult.IsSuccess)
+        {
+            AppendParseErrors(builder, parseResult.Errors, language);
+            return builder.ToString();
+        }
+
+        AppendLine(builder, language, $"From point: {result.FromPointName}", $"起点: {result.FromPointName}");
+        AppendLine(builder, language, $"To point: {result.ToPointName}", $"终点: {result.ToPointName}");
+        AppendLine(builder, language, $"Delta X: {FormatNumber(result.DeltaX)}", $"坐标增量 X: {FormatNumber(result.DeltaX)}");
+        AppendLine(builder, language, $"Delta Y: {FormatNumber(result.DeltaY)}", $"坐标增量 Y: {FormatNumber(result.DeltaY)}");
+        AppendLine(builder, language, $"Distance 2D: {FormatNumber(result.Distance2D)}", $"二维距离: {FormatNumber(result.Distance2D)}");
+        AppendLine(builder, language, $"Azimuth: {FormatNumber(result.AzimuthDegrees)} degrees", $"方位角: {FormatNumber(result.AzimuthDegrees)} 度");
+        AppendLine(builder, language, $"Delta H: {FormatNullable(result.DeltaH)}", $"高差: {FormatNullable(result.DeltaH)}");
+        AppendLine(builder, language, $"Distance 3D: {FormatNullable(result.Distance3D)}", $"三维距离: {FormatNullable(result.Distance3D)}");
+        AppendWarnings(builder, result.Warnings, language);
+        AppendParseErrors(builder, parseResult.Errors, language);
+        return builder.ToString();
+    }
+
+    public string BuildBatchSegmentTableReport(
+        ParseResult parseResult,
+        BatchSegmentTableResult result,
+        ReportLanguage language = ReportLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+        ArgumentNullException.ThrowIfNull(result);
+
+        var builder = new StringBuilder();
+        AppendTitle(builder, language, "SurveyCalcKit Batch Segment Table Report", "SurveyCalcKit 批量边长方位角表");
+        AppendPointCount(builder, parseResult, language);
+        AppendLine(builder, language, $"Segment count: {result.SegmentCount}", $"线段数: {result.SegmentCount}");
+        AppendLine(builder, language, $"Total length: {FormatNumber(result.TotalLength)}", $"总长度: {FormatNumber(result.TotalLength)}");
+        AppendBatchSegmentRows(builder, result.Rows, language);
+        AppendWarnings(builder, result.Warnings, language);
+        AppendParseErrors(builder, parseResult.Errors, language);
+        return builder.ToString();
+    }
+
+    public string BuildAngleConversionReport(
+        AngleConversionResult result,
+        ReportLanguage language = ReportLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+
+        var builder = new StringBuilder();
+        AppendTitle(builder, language, "SurveyCalcKit Angle Conversion Report", "SurveyCalcKit 角度格式转换报告");
+        AppendLine(builder, language, $"Decimal degrees: {FormatNumber(result.DecimalDegrees)}", $"十进制度: {FormatNumber(result.DecimalDegrees)}");
+        AppendLine(builder, language, $"DMS: {result.DmsText}", $"度分秒: {result.DmsText}");
+        AppendLine(builder, language, $"Radians: {FormatNumber(result.Radians)}", $"弧度: {FormatNumber(result.Radians)}");
+        AppendLine(
+            builder,
+            language,
+            "Note: DMS precision is rounded for display only.",
+            "说明: 度分秒精度仅用于显示时四舍五入。");
+        AppendWarnings(builder, result.Warnings, language);
+        return builder.ToString();
+    }
+
     private static void AppendTitle(StringBuilder builder, ReportLanguage language, string english, string chinese)
     {
         AppendLine(builder, language, english, chinese);
@@ -545,6 +613,35 @@ public sealed class ReportBuilder
             builder.AppendLine(
                 $"{point.PointName} | {FormatNumber(point.RawElevation)} | " +
                 $"{FormatNumber(point.Correction)} | {FormatNumber(point.AdjustedElevation)}");
+        }
+    }
+
+    private static void AppendBatchSegmentRows(
+        StringBuilder builder,
+        IReadOnlyList<BatchSegmentRow> rows,
+        ReportLanguage language)
+    {
+        if (rows.Count == 0)
+        {
+            AppendLine(builder, language, "Segment rows: none", "线段行: 无");
+            return;
+        }
+
+        AppendLine(builder, language, "Segment rows:", "线段表:");
+        AppendLine(
+            builder,
+            language,
+            "Index | From -> To | Dx | Dy | Distance2D | Azimuth | Cumulative | DeltaH | Slope%",
+            "序号 | 起点 -> 终点 | Dx | Dy | 二维距离 | 方位角 | 累计距离 | 高差 | 坡度%");
+
+        foreach (var row in rows)
+        {
+            builder.AppendLine(
+                $"{row.Index} | {row.From} -> {row.To} | " +
+                $"{FormatNumber(row.DeltaX)} | {FormatNumber(row.DeltaY)} | " +
+                $"{FormatNumber(row.Distance2D)} | {FormatNumber(row.AzimuthDegrees)} | " +
+                $"{FormatNumber(row.CumulativeDistance)} | {FormatNullable(row.DeltaH)} | " +
+                $"{FormatNullable(row.SlopePercent)}");
         }
     }
 

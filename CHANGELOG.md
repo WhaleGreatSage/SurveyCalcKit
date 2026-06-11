@@ -6,6 +6,16 @@ All notable changes to this project will be documented in this file.
 
 No unreleased changes.
 
+## v0.1.6 - 2026-06-11
+
+- Added coordinate inverse calculation with optional height and 3D distance support.
+- Added batch segment table generation with cumulative distance and slope values.
+- Added angle format conversion between decimal degrees, DMS text, and radians.
+- Added Markdown report export for plain-text calculation reports.
+- Added CLI `inverse`, `segments`, `angle`, and `export-md` commands.
+- Added WinForms `Calculate Inverse`, `Calculate Segments`, `Convert Angle`, and `Export Markdown` actions.
+- Added samples, documentation updates, and unit tests for the v0.1.6 feature set.
+
 ## v0.1.5 - 2026-06-07
 
 - Added coordinate forward calculation from start point, azimuth, and distance.

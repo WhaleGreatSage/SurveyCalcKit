@@ -27,10 +27,14 @@ The project focuses on small, readable, testable calculations that can be used f
 - Calculate closed traverse coordinate closure error and Bowditch/Compass Rule adjustment.
 - Calculate leveling route closure error and adjusted elevations.
 - Calculate endpoint coordinates from start point, azimuth, and horizontal distance.
+- Calculate inverse coordinate values between two known points.
+- Generate batch segment tables with cumulative distance.
+- Convert angles between decimal degrees, DMS text, and radians.
 - Calculate chainage, perpendicular offset, side, and projection point relative to a baseline.
 - Calculate elevation closure error when known start and end elevations are available.
 - Translate, scale, and rotate point coordinates.
 - Import point data from Excel `.xlsx` files and export calculation results to Excel.
+- Export plain-text reports to UTF-8 Markdown files.
 - Generate readable English and Chinese reports.
 - Use the same core calculation library from CLI and WinForms.
 - Run automated .NET restore, build, and test checks through GitHub Actions.
@@ -56,7 +60,10 @@ samples/
   closed_traverse_sample.txt
   leveling_route_sample.txt
   coordinate_forward_sample.txt
+  coordinate_inverse_sample.txt
+  batch_segments_sample.txt
   chainage_offset_sample.txt
+  report_sample.txt
   excel_sample.xlsx
 .github/workflows/
   dotnet.yml                CI workflow
@@ -97,7 +104,11 @@ surveycalc elevation <file>
 surveycalc closure <file>
 surveycalc leveling <file>
 surveycalc forward <file>
+surveycalc inverse <file>
 surveycalc offset <file>
+surveycalc segments <file>
+surveycalc angle <value>
+surveycalc export-md <input-report.txt> <output.md>
 surveycalc transform <file> --dx <value> --dy <value> --scale <value> --angle <degrees>
 ```
 
@@ -112,7 +123,11 @@ dotnet run --project src/SurveyCalcKit.Cli -- elevation samples/elevation_sample
 dotnet run --project src/SurveyCalcKit.Cli -- closure samples/closed_traverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- leveling samples/leveling_route_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- forward samples/coordinate_forward_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- inverse samples/coordinate_inverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- offset samples/chainage_offset_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- segments samples/batch_segments_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- angle 53.130102
+dotnet run --project src/SurveyCalcKit.Cli -- export-md samples/report_sample.txt output/report.md
 dotnet run --project src/SurveyCalcKit.Cli -- transform samples/transform_sample.txt --dx 500 --dy 1000 --scale 1.0002 --angle 15
 ```
 
@@ -124,9 +139,9 @@ The WinForms app provides:
 
 - A left multiline text box for raw point input.
 - A right multiline text box for calculation reports.
-- Import, 导入 Excel, Calculate Traverse, Calculate Elevation, Calculate Leveling, Calculate Closure, Calculate Forward, Calculate Offset, 导出 Excel, Export Report, and Clear buttons.
+- Import, 导入 Excel, Calculate Traverse, Calculate Elevation, Calculate Leveling, Calculate Closure, Calculate Forward, Calculate Offset, Calculate Inverse, Calculate Segments, Convert Angle, 导出 Excel, Export Markdown, Export Report, and Clear buttons.
 
-Use `Import` to load `.txt`, `.dat`, or `.csv` style point files. Use `导入 Excel` to load `.xlsx` point data into the raw input box. Use the calculation buttons to generate traverse, elevation, leveling, closure, coordinate forward, or chainage/offset reports. Use `Export Report` to save text output or `导出 Excel` to save the current report as an Excel workbook.
+Use `Import` to load `.txt`, `.dat`, or `.csv` style point files. Use `导入 Excel` to load `.xlsx` point data into the raw input box. Use the calculation buttons to generate traverse, elevation, leveling, closure, coordinate forward, coordinate inverse, batch segment, angle conversion, or chainage/offset reports. Use `Export Report`, `Export Markdown`, or `导出 Excel` to save the current report.
 
 ## Sample Input
 
@@ -275,6 +290,73 @@ Projection inside segment: Yes
 ```
 
 This straight-segment method is suitable for simple baseline checks and beginner stakeout exercises. It does not yet calculate chainage along circular curves, transition curves, or multi-segment centerlines.
+
+## Coordinate Inverse Calculation / 坐标反算
+
+Coordinate inverse calculation computes `Delta X`, `Delta Y`, 2D distance, azimuth, optional elevation difference, and optional 3D distance from two known point coordinates.
+
+```text
+FROM P1 1000.000 1000.000 12.500
+TO P2 1050.000 1040.000 13.200
+```
+
+Run:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- inverse samples/coordinate_inverse_sample.txt
+```
+
+Sample output:
+
+```text
+Delta X: 50
+Delta Y: 40
+Distance 2D: 64.031
+Azimuth: 38.66 degrees
+Delta H: 0.7
+Distance 3D: 64.035
+```
+
+## Batch Segment Table / 批量边长方位角表
+
+Batch segment table generation turns a point list into consecutive segment rows with distance, azimuth, cumulative distance, optional delta H, and optional slope percentage.
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- segments samples/batch_segments_sample.txt
+```
+
+Sample output includes:
+
+```text
+Parsed point count: 4
+Segment count: 3
+Total length: 148.805
+1 | P1 -> P2 | 30 | 40 | 50 | 53.13 | 50 | 0.3 | 0.6
+```
+
+## Angle Format Converter / 角度格式转换
+
+The angle converter accepts decimal degrees or DMS text such as `53°07'48.37"`, `53 7 48.37`, or `53:7:48.37`, then reports decimal degrees, DMS, and radians. DMS precision is rounded for display only.
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- angle 53.130102
+```
+
+Sample output:
+
+```text
+Decimal degrees: 53.13
+DMS: 53°07'48.37"
+Radians: 0.927
+```
+
+## Markdown Report Export / Markdown 报告导出
+
+Markdown export converts an existing plain-text report into a UTF-8 `.md` file with a title, generation timestamp, and fenced text block that preserves line breaks.
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- export-md samples/report_sample.txt output/report.md
+```
 
 ## Excel Import and Export
 
