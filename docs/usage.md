@@ -24,10 +24,13 @@ dotnet run --project src/SurveyCalcKit.Cli -- export traverse traverse_results.x
 dotnet run --project src/SurveyCalcKit.Cli -- traverse samples/traverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- elevation samples/elevation_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- closure samples/closed_traverse_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- quality samples/traverse_quality_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- leveling samples/leveling_route_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- curve samples/circular_curve_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- forward samples/coordinate_forward_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- inverse samples/coordinate_inverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- offset samples/chainage_offset_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- stakeout samples/stakeout_batch_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- segments samples/batch_segments_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- angle 53.130102
 dotnet run --project src/SurveyCalcKit.Cli -- export-md samples/report_sample.txt output/report.md
@@ -140,6 +143,95 @@ The report includes:
 - correction per station
 - raw and adjusted elevations
 - warnings for empty input, negative sight values, or large closure error
+
+## Enhanced Closed Traverse Quality Evaluation
+
+Use the `quality` command to evaluate a closed traverse with coordinate closure, relative closure precision, optional angular closure, allowable limits, and a quality grade:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- quality samples/traverse_quality_sample.txt
+```
+
+Input format:
+
+```text
+POINTS
+P1 1000.000 1000.000
+P2 1100.050 1002.200
+P3 1098.600 1098.900
+P4 998.900 1097.700
+P1 1000.120 999.930
+ANGLES
+90.0020
+89.9985
+90.0040
+89.9950
+LIMITS
+RELATIVE 2000
+ANGULAR_SECONDS_PER_STATION 40
+```
+
+Comma-separated data rows are also accepted where reasonable, such as `P1,1000.000,1000.000` and `RELATIVE,2000`.
+
+## Circular Curve Elements Calculation
+
+Use the `curve` command for road circular curve element calculation:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- curve samples/circular_curve_sample.txt
+```
+
+Input format:
+
+```text
+CURVE C1
+PI_CHAINAGE 1250.000
+RADIUS 300.000
+ANGLE 42.5000
+DIRECTION RIGHT
+```
+
+Comma-separated key/value rows are also supported:
+
+```text
+CURVE,C1
+PI_CHAINAGE,1250.000
+RADIUS,300.000
+ANGLE,42.5000
+DIRECTION,RIGHT
+```
+
+The report includes tangent length, curve length, external distance, middle ordinate, and PC/ZY and PT/YZ chainages.
+
+## Batch Stakeout Point Calculation
+
+Use the `stakeout` command to calculate multiple stakeout coordinates from a straight baseline direction:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- stakeout samples/stakeout_batch_sample.txt
+```
+
+Input format:
+
+```text
+ORIGIN A 1000.000 1000.000
+AZIMUTH 35.0000
+START_CHAINAGE 0.000
+POINT K0+020 20.000 0.000
+POINT K0+040_L5 40.000 5.000
+POINT K0+060_R3 60.000 -3.000
+```
+
+Comma-separated input is also supported:
+
+```text
+ORIGIN,A,1000.000,1000.000
+AZIMUTH,35.0000
+START_CHAINAGE,0.000
+POINT,K0+020,20.000,0.000
+```
+
+Positive offset means the left side of the baseline direction. Negative offset means the right side.
 
 ## Coordinate Forward Calculation
 
@@ -271,4 +363,4 @@ Run on Windows:
 dotnet run --project src/SurveyCalcKit.WinForms
 ```
 
-Paste or import point records into the left text box, then calculate traverse, elevation, leveling, closure, coordinate forward, coordinate inverse, batch segment, angle conversion, or chainage/offset reports. Use `导入 Excel` to populate the input box from an Excel point workbook. Use `导出 Excel` to save the current report to an `.xlsx` workbook. `Export Markdown` saves the current report as `.md`, and `Export Report` saves it as a text file.
+Paste or import records into the left text box, then calculate traverse, elevation, leveling, closure, quality evaluation, circular curve, stakeout, coordinate forward, coordinate inverse, batch segment, angle conversion, or chainage/offset reports. Use `导入 Excel` to populate the input box from an Excel point workbook. Use `导出 Excel` to save the current report to an `.xlsx` workbook. `Export Markdown` saves the current report as `.md`, and `Export Report` saves it as a text file.

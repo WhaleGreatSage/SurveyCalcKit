@@ -23,6 +23,9 @@ SurveyCalcKit is intended to grow slowly and remain beginner-friendly.
 - Angle format conversion between decimal degrees, DMS, and radians.
 - Markdown report export for coursework and GitHub documentation.
 - Chainage and offset calculation for target points against a straight baseline.
+- Enhanced closed traverse quality evaluation with relative and angular closure checks.
+- Circular curve element calculation for road alignment workflows.
+- Batch stakeout point coordinate calculation from chainage and offset records.
 - More report formatting options.
 - Optional Chinese UI labels.
 - CSV export for segment tables.
@@ -44,6 +47,11 @@ SurveyCalcKit is intended to grow slowly and remain beginner-friendly.
 - Plugin-style calculation modules.
 - Road curve element calculation.
 - Stakeout report export.
+- Least squares traverse adjustment.
+- Vertical curve calculation.
+- Spiral transition curve calculation.
+- Batch stakeout Excel import/export.
+- CAD/DXF export.
 - More coordinate transformation modes.
 - Additional surveying formulas with worked examples.
 - Better localization infrastructure.

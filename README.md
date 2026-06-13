@@ -25,7 +25,10 @@ The project focuses on small, readable, testable calculations that can be used f
 - Calculate segment dx, dy, 2D distance, optional 3D distance, azimuth, delta H, and slope percentage.
 - Calculate total 2D traverse length.
 - Calculate closed traverse coordinate closure error and Bowditch/Compass Rule adjustment.
+- Evaluate enhanced closed traverse quality with relative precision, angular closure checks, limits, and quality grades.
 - Calculate leveling route closure error and adjusted elevations.
+- Calculate circular curve elements for road and route engineering.
+- Calculate batch stakeout point coordinates from origin, azimuth, chainage, and offset.
 - Calculate endpoint coordinates from start point, azimuth, and horizontal distance.
 - Calculate inverse coordinate values between two known points.
 - Generate batch segment tables with cumulative distance.
@@ -63,6 +66,9 @@ samples/
   coordinate_inverse_sample.txt
   batch_segments_sample.txt
   chainage_offset_sample.txt
+  traverse_quality_sample.txt
+  circular_curve_sample.txt
+  stakeout_batch_sample.txt
   report_sample.txt
   excel_sample.xlsx
 .github/workflows/
@@ -102,10 +108,13 @@ surveycalc export <traverse|leveling|polygon> <file.xlsx> --input <data-file>
 surveycalc traverse <file>
 surveycalc elevation <file>
 surveycalc closure <file>
+surveycalc quality <file>
 surveycalc leveling <file>
+surveycalc curve <file>
 surveycalc forward <file>
 surveycalc inverse <file>
 surveycalc offset <file>
+surveycalc stakeout <file>
 surveycalc segments <file>
 surveycalc angle <value>
 surveycalc export-md <input-report.txt> <output.md>
@@ -121,10 +130,13 @@ dotnet run --project src/SurveyCalcKit.Cli -- export traverse traverse_results.x
 dotnet run --project src/SurveyCalcKit.Cli -- traverse samples/traverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- elevation samples/elevation_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- closure samples/closed_traverse_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- quality samples/traverse_quality_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- leveling samples/leveling_route_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- curve samples/circular_curve_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- forward samples/coordinate_forward_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- inverse samples/coordinate_inverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- offset samples/chainage_offset_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- stakeout samples/stakeout_batch_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- segments samples/batch_segments_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- angle 53.130102
 dotnet run --project src/SurveyCalcKit.Cli -- export-md samples/report_sample.txt output/report.md
@@ -139,9 +151,9 @@ The WinForms app provides:
 
 - A left multiline text box for raw point input.
 - A right multiline text box for calculation reports.
-- Import, 导入 Excel, Calculate Traverse, Calculate Elevation, Calculate Leveling, Calculate Closure, Calculate Forward, Calculate Offset, Calculate Inverse, Calculate Segments, Convert Angle, 导出 Excel, Export Markdown, Export Report, and Clear buttons.
+- Import, 导入 Excel, Calculate Traverse, Calculate Elevation, Calculate Leveling, Calculate Closure, Evaluate Quality, Calculate Curve, Calculate Forward, Calculate Offset, Calculate Stakeout, Calculate Inverse, Calculate Segments, Convert Angle, 导出 Excel, Export Markdown, Export Report, and Clear buttons.
 
-Use `Import` to load `.txt`, `.dat`, or `.csv` style point files. Use `导入 Excel` to load `.xlsx` point data into the raw input box. Use the calculation buttons to generate traverse, elevation, leveling, closure, coordinate forward, coordinate inverse, batch segment, angle conversion, or chainage/offset reports. Use `Export Report`, `Export Markdown`, or `导出 Excel` to save the current report.
+Use `Import` to load `.txt`, `.dat`, or `.csv` style point files. Use `导入 Excel` to load `.xlsx` point data into the raw input box. Use the calculation buttons to generate traverse, elevation, leveling, closure, quality evaluation, circular curve, stakeout, coordinate forward, coordinate inverse, batch segment, angle conversion, or chainage/offset reports. Use `Export Report`, `Export Markdown`, or `导出 Excel` to save the current report.
 
 ## Sample Input
 
@@ -234,6 +246,76 @@ Adjusted elevations:
 ```
 
 The simple adjustment method distributes closure error equally by station count. It is suitable for beginner checking workflows, but it does not model sight length, instrument precision, or weighted least-squares adjustment.
+
+## Enhanced Closed Traverse Quality Evaluation / 增强型闭合导线精度评价
+
+The `quality` command evaluates a closed traverse using coordinate closure, relative closure precision, optional angular closure error, allowable limits, and a simple quality grade.
+
+```text
+POINTS
+P1 1000.000 1000.000
+P2 1100.050 1002.200
+P3 1098.600 1098.900
+P4 998.900 1097.700
+P1 1000.120 999.930
+ANGLES
+90.0020
+89.9985
+90.0040
+89.9950
+LIMITS
+RELATIVE 2000
+ANGULAR_SECONDS_PER_STATION 40
+```
+
+Run:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- quality samples/traverse_quality_sample.txt
+```
+
+The report includes `fx`, `fy`, linear closure error, relative closure precision, angular closure error in seconds, pass/fail checks, quality grade, segment rows, and warnings. The angular closure check uses the theoretical interior angle sum `(n - 2) * 180` for a closed traverse.
+
+## Circular Curve Elements Calculation / 道路圆曲线要素计算
+
+The `curve` command calculates basic circular curve elements from PI chainage, radius, deflection angle, and turn direction.
+
+```text
+CURVE C1
+PI_CHAINAGE 1250.000
+RADIUS 300.000
+ANGLE 42.5000
+DIRECTION RIGHT
+```
+
+Run:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- curve samples/circular_curve_sample.txt
+```
+
+The report includes tangent length `T`, curve length `L`, external distance `E`, middle ordinate `M`, and PC/ZY and PT/YZ chainages. Units are assumed to be meters and degrees.
+
+## Batch Stakeout Point Calculation / 批量放样点坐标计算
+
+The `stakeout` command calculates multiple stakeout coordinates from an origin point, baseline azimuth, start chainage, and chainage/offset records. SurveyCalcKit uses the same angle convention as traverse azimuth: degrees counterclockwise from the positive X axis. Positive offset is the left side of the baseline direction; negative offset is the right side.
+
+```text
+ORIGIN A 1000.000 1000.000
+AZIMUTH 35.0000
+START_CHAINAGE 0.000
+POINT K0+020 20.000 0.000
+POINT K0+040_L5 40.000 5.000
+POINT K0+060_R3 60.000 -3.000
+```
+
+Run:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- stakeout samples/stakeout_batch_sample.txt
+```
+
+The report includes point name, chainage, offset, side, and calculated X/Y coordinates. The method is intended for straight baseline layout workflows; curved alignments and spiral transition curves are future work.
 
 ## Coordinate Forward Calculation / 坐标正算
 

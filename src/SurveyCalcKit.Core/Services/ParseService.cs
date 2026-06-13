@@ -582,6 +582,350 @@ public sealed class ParseService
             errors);
     }
 
+    public TraverseQualityParseResult ParseTraverseQuality(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        var points = new List<PointRecord>();
+        var angles = new List<double>();
+        double? allowableRelative = null;
+        double? allowableAngularSecondsPerStation = null;
+        string? section = null;
+        var errors = new List<ParseError>();
+
+        using var reader = new StringReader(text);
+        var lineNumber = 0;
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            lineNumber++;
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0)
+            {
+                continue;
+            }
+
+            var fields = SplitFields(trimmed);
+            var keyword = fields[0].ToUpperInvariant();
+            if (keyword is "POINTS" or "ANGLES" or "LIMITS")
+            {
+                section = keyword;
+                continue;
+            }
+
+            switch (section)
+            {
+                case "POINTS":
+                    ParseTraverseQualityPoint(fields, lineNumber, line, points, errors);
+                    break;
+                case "ANGLES":
+                    if (fields.Length != 1)
+                    {
+                        errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: ANGLES rows require one angle value."));
+                        break;
+                    }
+
+                    if (!TryParseNumber(fields[0], out var angle))
+                    {
+                        errors.Add(CreateNumericError(lineNumber, line, "Angle", fields[0]));
+                        break;
+                    }
+
+                    angles.Add(angle);
+                    break;
+                case "LIMITS":
+                    if (fields.Length != 2)
+                    {
+                        errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: LIMITS rows require key and value."));
+                        break;
+                    }
+
+                    if (!TryParseNumber(fields[1], out var limitValue))
+                    {
+                        errors.Add(CreateNumericError(lineNumber, line, fields[0], fields[1]));
+                        break;
+                    }
+
+                    var limitKey = fields[0].ToUpperInvariant();
+                    if (limitKey == "RELATIVE")
+                    {
+                        allowableRelative = limitValue;
+                    }
+                    else if (limitKey == "ANGULAR_SECONDS_PER_STATION")
+                    {
+                        allowableAngularSecondsPerStation = limitValue;
+                    }
+                    else
+                    {
+                        errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: Unknown LIMITS key '{fields[0]}'." ));
+                    }
+
+                    break;
+                default:
+                    errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: Expected POINTS, ANGLES, or LIMITS section before data rows."));
+                    break;
+            }
+        }
+
+        if (points.Count == 0)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Traverse quality input requires a POINTS section."));
+        }
+
+        if (errors.Count > 0)
+        {
+            return new TraverseQualityParseResult(null, errors);
+        }
+
+        return new TraverseQualityParseResult(
+            new TraverseQualityInput(
+                points,
+                angles.Count > 0 ? angles : null,
+                allowableRelative,
+                allowableAngularSecondsPerStation,
+                "Closed"),
+            errors);
+    }
+
+    public CircularCurveParseResult ParseCircularCurve(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        string? curveName = null;
+        double? piChainage = null;
+        double? radius = null;
+        double? angle = null;
+        string? direction = null;
+        var errors = new List<ParseError>();
+
+        using var reader = new StringReader(text);
+        var lineNumber = 0;
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            lineNumber++;
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0)
+            {
+                continue;
+            }
+
+            var fields = SplitFields(trimmed);
+            if (fields.Length != 2)
+            {
+                errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: Circular curve rows require key and value."));
+                continue;
+            }
+
+            switch (fields[0].ToUpperInvariant())
+            {
+                case "CURVE":
+                    curveName = fields[1];
+                    break;
+                case "PI_CHAINAGE":
+                    if (!TryParseNumber(fields[1], out var parsedPi))
+                    {
+                        errors.Add(CreateNumericError(lineNumber, line, "PI chainage", fields[1]));
+                        break;
+                    }
+
+                    piChainage = parsedPi;
+                    break;
+                case "RADIUS":
+                    if (!TryParseNumber(fields[1], out var parsedRadius))
+                    {
+                        errors.Add(CreateNumericError(lineNumber, line, "Radius", fields[1]));
+                        break;
+                    }
+
+                    radius = parsedRadius;
+                    break;
+                case "ANGLE":
+                    if (!TryParseNumber(fields[1], out var parsedAngle))
+                    {
+                        errors.Add(CreateNumericError(lineNumber, line, "Angle", fields[1]));
+                        break;
+                    }
+
+                    angle = parsedAngle;
+                    break;
+                case "DIRECTION":
+                    direction = NormalizeDirectionText(fields[1]);
+                    break;
+                default:
+                    errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: Unknown circular curve keyword '{fields[0]}'."));
+                    break;
+            }
+        }
+
+        if (curveName is null)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Circular curve input requires CURVE name."));
+        }
+
+        if (!piChainage.HasValue)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Circular curve input requires PI_CHAINAGE value."));
+        }
+
+        if (!radius.HasValue)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Circular curve input requires RADIUS value."));
+        }
+
+        if (!angle.HasValue)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Circular curve input requires ANGLE value."));
+        }
+
+        if (direction is null)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Circular curve input requires DIRECTION Left or Right."));
+        }
+
+        if (errors.Count > 0)
+        {
+            return new CircularCurveParseResult(null, errors);
+        }
+
+        return new CircularCurveParseResult(
+            new CircularCurveInput(curveName!, piChainage!.Value, radius!.Value, angle!.Value, direction!),
+            errors);
+    }
+
+    public StakeoutBatchParseResult ParseStakeoutBatch(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        string? originPointName = null;
+        double? originX = null;
+        double? originY = null;
+        double? azimuth = null;
+        var startChainage = 0.0;
+        var records = new List<StakeoutRecord>();
+        var errors = new List<ParseError>();
+
+        using var reader = new StringReader(text);
+        var lineNumber = 0;
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            lineNumber++;
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0)
+            {
+                continue;
+            }
+
+            var fields = SplitFields(trimmed);
+            var keyword = fields[0].ToUpperInvariant();
+            switch (keyword)
+            {
+                case "ORIGIN":
+                    if (fields.Length != 4)
+                    {
+                        errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: ORIGIN requires 4 fields: ORIGIN name X Y."));
+                        break;
+                    }
+
+                    if (!TryParseNumber(fields[2], out var parsedOriginX))
+                    {
+                        errors.Add(CreateNumericError(lineNumber, line, "Origin X", fields[2]));
+                        break;
+                    }
+
+                    if (!TryParseNumber(fields[3], out var parsedOriginY))
+                    {
+                        errors.Add(CreateNumericError(lineNumber, line, "Origin Y", fields[3]));
+                        break;
+                    }
+
+                    originPointName = fields[1];
+                    originX = parsedOriginX;
+                    originY = parsedOriginY;
+                    break;
+                case "AZIMUTH":
+                    if (fields.Length != 2)
+                    {
+                        errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: AZIMUTH requires 2 fields: AZIMUTH degrees."));
+                        break;
+                    }
+
+                    if (!TryParseNumber(fields[1], out var parsedAzimuth))
+                    {
+                        errors.Add(CreateNumericError(lineNumber, line, "Azimuth", fields[1]));
+                        break;
+                    }
+
+                    azimuth = parsedAzimuth;
+                    break;
+                case "START_CHAINAGE":
+                    if (fields.Length != 2)
+                    {
+                        errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: START_CHAINAGE requires 2 fields."));
+                        break;
+                    }
+
+                    if (!TryParseNumber(fields[1], out var parsedStartChainage))
+                    {
+                        errors.Add(CreateNumericError(lineNumber, line, "Start chainage", fields[1]));
+                        break;
+                    }
+
+                    startChainage = parsedStartChainage;
+                    break;
+                case "POINT":
+                    if (fields.Length != 4)
+                    {
+                        errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: POINT requires 4 fields: POINT name chainage offset."));
+                        break;
+                    }
+
+                    if (!TryParseNumber(fields[2], out var chainage))
+                    {
+                        errors.Add(CreateNumericError(lineNumber, line, "Chainage", fields[2]));
+                        break;
+                    }
+
+                    if (!TryParseNumber(fields[3], out var offset))
+                    {
+                        errors.Add(CreateNumericError(lineNumber, line, "Offset", fields[3]));
+                        break;
+                    }
+
+                    records.Add(new StakeoutRecord(fields[1], chainage, offset));
+                    break;
+                default:
+                    errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: Unknown stakeout keyword '{fields[0]}'."));
+                    break;
+            }
+        }
+
+        if (originPointName is null || !originX.HasValue || !originY.HasValue)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Stakeout input requires ORIGIN name X Y."));
+        }
+
+        if (!azimuth.HasValue)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Stakeout input requires AZIMUTH degrees."));
+        }
+
+        if (records.Count == 0)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Stakeout input requires at least one POINT row."));
+        }
+
+        if (errors.Count > 0)
+        {
+            return new StakeoutBatchParseResult(null, errors);
+        }
+
+        return new StakeoutBatchParseResult(
+            new StakeoutBatchInput(originPointName!, originX!.Value, originY!.Value, azimuth!.Value, startChainage, records),
+            errors);
+    }
+
     private static string[] SplitFields(string line)
     {
         if (line.Contains(','))
@@ -607,5 +951,60 @@ public sealed class ParseService
             lineNumber,
             rawLine,
             $"Line {lineNumber}: Invalid {fieldName} value '{value}'. Use a decimal number such as 100.000.");
+    }
+
+    private static void ParseTraverseQualityPoint(
+        IReadOnlyList<string> fields,
+        int lineNumber,
+        string rawLine,
+        List<PointRecord> points,
+        List<ParseError> errors)
+    {
+        if (fields.Count is not (3 or 4))
+        {
+            errors.Add(new ParseError(lineNumber, rawLine, $"Line {lineNumber}: POINTS rows require Name X Y [H]."));
+            return;
+        }
+
+        if (!TryParseNumber(fields[1], out var x))
+        {
+            errors.Add(CreateNumericError(lineNumber, rawLine, "X", fields[1]));
+            return;
+        }
+
+        if (!TryParseNumber(fields[2], out var y))
+        {
+            errors.Add(CreateNumericError(lineNumber, rawLine, "Y", fields[2]));
+            return;
+        }
+
+        double? h = null;
+        if (fields.Count == 4)
+        {
+            if (!TryParseNumber(fields[3], out var parsedH))
+            {
+                errors.Add(CreateNumericError(lineNumber, rawLine, "H", fields[3]));
+                return;
+            }
+
+            h = parsedH;
+        }
+
+        points.Add(new PointRecord(fields[0], x, y, h));
+    }
+
+    private static string NormalizeDirectionText(string direction)
+    {
+        if (string.Equals(direction, "Left", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Left";
+        }
+
+        if (string.Equals(direction, "Right", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Right";
+        }
+
+        return direction;
     }
 }

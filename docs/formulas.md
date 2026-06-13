@@ -334,6 +334,117 @@ Adjusted point coordinates are then accumulated from the starting point using th
 
 This simple Compass Rule implementation is intended for beginner workflows and classroom examples. It assumes segment observations have comparable quality and distributes error only by segment length. It does not model instrument precision, angle/distance weighting, covariance, or least-squares network adjustment.
 
+## Enhanced Traverse Quality Evaluation
+
+Enhanced closed traverse quality evaluation reuses coordinate closure and total length:
+
+```text
+fx = end.X - start.X
+fy = end.Y - start.Y
+f = sqrt(fx^2 + fy^2)
+RelativeClosureDenominator = TotalLength / f
+```
+
+If `f` is zero within tolerance, SurveyCalcKit reports an infinite relative closure denominator and a perfect closure warning.
+
+When an allowable relative closure denominator is provided:
+
+```text
+PassesLinearClosureLimit = RelativeClosureDenominator >= AllowableRelativeClosureDenominator
+```
+
+For optional angular closure, SurveyCalcKit uses a simple closed-polygon interior-angle check. For an `n`-sided closed traverse:
+
+```text
+TheoreticalInteriorAngleSum = (n - 2) * 180 degrees
+AngularClosureErrorSeconds = (sum(ObservedAnglesDegrees) - TheoreticalInteriorAngleSum) * 3600
+AllowableAngularClosureSeconds = AllowableAngularClosureSecondsPerStation * sqrt(n)
+```
+
+The angular check passes when:
+
+```text
+abs(AngularClosureErrorSeconds) <= AllowableAngularClosureSeconds
+```
+
+Quality grades are intentionally simple:
+
+- `Failed`: linear or angular limit fails.
+- `Excellent`: perfect closure or relative denominator at least 10000.
+- `Good`: relative denominator at least 5000.
+- `Pass`: limits are satisfied but not high enough for the stronger grades.
+- `NotEvaluated`: too few points, zero total length, or no usable limits.
+
+This module is a quality screening tool. It is not a least-squares network adjustment.
+
+## Circular Curve Elements
+
+For a simple circular curve:
+
+```text
+R = radius
+Delta = deflection/intersection angle in degrees
+PI = PI chainage
+```
+
+Convert half the angle to radians:
+
+```text
+HalfAngle = Delta * pi / 180 / 2
+```
+
+Then calculate:
+
+```text
+T = R * tan(HalfAngle)
+L = pi * R * Delta / 180
+E = R * (sec(HalfAngle) - 1)
+M = R * (1 - cos(HalfAngle))
+PC/ZY = PI - T
+PT/YZ = PC/ZY + L
+```
+
+SurveyCalcKit validates `R > 0` and `0 < Delta < 180`. Units are meters and degrees.
+
+## Batch Stakeout Coordinates
+
+Stakeout uses the same azimuth convention as traverse and coordinate forward calculation: degrees counterclockwise from the positive X axis.
+
+Given:
+
+```text
+Origin = (X0, Y0)
+A = baseline azimuth in degrees
+S0 = start chainage
+S = stakeout chainage
+O = offset
+```
+
+Convert azimuth to radians and compute unit vectors:
+
+```text
+ux = cos(A)
+uy = sin(A)
+leftX = -sin(A)
+leftY = cos(A)
+alongDistance = S - S0
+```
+
+Stakeout coordinate:
+
+```text
+X = X0 + alongDistance * ux + O * leftX
+Y = Y0 + alongDistance * uy + O * leftY
+```
+
+Offset sign convention:
+
+- `O > 0`: left side of the baseline direction.
+- `O < 0`: right side of the baseline direction.
+- `O = 0`: on the baseline.
+
+The batch stakeout module assumes a straight baseline. Circular alignment, spiral transition curve, and CAD/DXF export are future extensions.
+
 ## Coordinate Transform
 
 Coordinate transformation applies rotation about the origin, then scale, then translation:

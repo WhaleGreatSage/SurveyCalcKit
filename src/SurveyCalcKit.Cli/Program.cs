@@ -9,11 +9,14 @@ internal static class SurveyCalcCli
     private static readonly ParseService Parser = new();
     private static readonly TraverseCalculator TraverseCalculator = new();
     private static readonly ClosedTraverseCalculator ClosedTraverseCalculator = new();
+    private static readonly TraverseQualityEvaluator TraverseQualityEvaluator = new();
     private static readonly LevelingRouteCalculator LevelingRouteCalculator = new();
     private static readonly CoordinateForwardCalculator CoordinateForwardCalculator = new();
     private static readonly CoordinateInverseCalculator CoordinateInverseCalculator = new();
     private static readonly ChainageOffsetCalculator ChainageOffsetCalculator = new();
     private static readonly BatchSegmentTableCalculator BatchSegmentTableCalculator = new();
+    private static readonly CircularCurveCalculator CircularCurveCalculator = new();
+    private static readonly StakeoutBatchCalculator StakeoutBatchCalculator = new();
     private static readonly AngleConverter AngleConverter = new();
     private static readonly MarkdownReportExporter MarkdownReportExporter = new();
     private static readonly CoordinateTransformService TransformService = new();
@@ -37,10 +40,13 @@ internal static class SurveyCalcCli
             "traverse" => RunTraverse(commandArgs),
             "elevation" => RunElevation(commandArgs),
             "closure" => RunClosure(commandArgs),
+            "quality" => RunQuality(commandArgs),
             "leveling" => RunLeveling(commandArgs),
+            "curve" => RunCurve(commandArgs),
             "forward" => RunForward(commandArgs),
             "inverse" => RunInverse(commandArgs),
             "offset" => RunOffset(commandArgs),
+            "stakeout" => RunStakeout(commandArgs),
             "segments" => RunSegments(commandArgs),
             "angle" => RunAngle(commandArgs),
             "export-md" => RunExportMarkdown(commandArgs),
@@ -220,6 +226,28 @@ internal static class SurveyCalcCli
         return closureResult.AdjustedSegments.Count > 0 ? 0 : 1;
     }
 
+    private static int RunQuality(string[] args)
+    {
+        if (!TryReadFileArgument(args, out var text))
+        {
+            return 1;
+        }
+
+        var parseResult = Parser.ParseTraverseQuality(text);
+        if (!parseResult.IsSuccess)
+        {
+            Console.Error.WriteLine(ReportBuilder.BuildTraverseQualityReport(
+                parseResult,
+                CreateEmptyTraverseQualityResult(),
+                ReportLanguage.English));
+            return 1;
+        }
+
+        var result = TraverseQualityEvaluator.Evaluate(parseResult.Input!);
+        Console.WriteLine(ReportBuilder.BuildTraverseQualityReport(parseResult, result));
+        return result.QualityGrade == "Failed" || result.QualityGrade == "NotEvaluated" ? 1 : 0;
+    }
+
     private static int RunLeveling(string[] args)
     {
         if (!TryReadFileArgument(args, out var text))
@@ -237,6 +265,28 @@ internal static class SurveyCalcCli
         var routeResult = LevelingRouteCalculator.Calculate(parseResult.Route!);
         Console.WriteLine(ReportBuilder.BuildLevelingRouteReport(parseResult, routeResult));
         return routeResult.StationCount > 0 ? 0 : 1;
+    }
+
+    private static int RunCurve(string[] args)
+    {
+        if (!TryReadFileArgument(args, out var text))
+        {
+            return 1;
+        }
+
+        var parseResult = Parser.ParseCircularCurve(text);
+        if (!parseResult.IsSuccess)
+        {
+            Console.Error.WriteLine(ReportBuilder.BuildCircularCurveReport(
+                parseResult,
+                CreateEmptyCircularCurveResult(),
+                ReportLanguage.English));
+            return 1;
+        }
+
+        var result = CircularCurveCalculator.Calculate(parseResult.Input!);
+        Console.WriteLine(ReportBuilder.BuildCircularCurveReport(parseResult, result));
+        return result.Warnings.Count == 0 ? 0 : 1;
     }
 
     private static int RunForward(string[] args)
@@ -281,6 +331,28 @@ internal static class SurveyCalcCli
         var result = ChainageOffsetCalculator.Calculate(parseResult.Input!);
         Console.WriteLine(ReportBuilder.BuildChainageOffsetReport(parseResult, result));
         return result.BaselineLength > 0 ? 0 : 1;
+    }
+
+    private static int RunStakeout(string[] args)
+    {
+        if (!TryReadFileArgument(args, out var text))
+        {
+            return 1;
+        }
+
+        var parseResult = Parser.ParseStakeoutBatch(text);
+        if (!parseResult.IsSuccess)
+        {
+            Console.Error.WriteLine(ReportBuilder.BuildStakeoutBatchReport(
+                parseResult,
+                CreateEmptyStakeoutBatchResult(),
+                ReportLanguage.English));
+            return 1;
+        }
+
+        var result = StakeoutBatchCalculator.Calculate(parseResult.Input!);
+        Console.WriteLine(ReportBuilder.BuildStakeoutBatchReport(parseResult, result));
+        return result.Points.Count > 0 ? 0 : 1;
     }
 
     private static int RunInverse(string[] args)
@@ -639,6 +711,54 @@ internal static class SurveyCalcCli
             new List<string>());
     }
 
+    private static TraverseQualityResult CreateEmptyTraverseQualityResult()
+    {
+        return new TraverseQualityResult(
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            null,
+            null,
+            null,
+            null,
+            "NotEvaluated",
+            new List<string>(),
+            new List<TraverseQualitySegmentRow>());
+    }
+
+    private static CircularCurveResult CreateEmptyCircularCurveResult()
+    {
+        return new CircularCurveResult(
+            string.Empty,
+            0,
+            0,
+            0,
+            string.Empty,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            new List<string>());
+    }
+
+    private static StakeoutBatchResult CreateEmptyStakeoutBatchResult()
+    {
+        return new StakeoutBatchResult(
+            string.Empty,
+            0,
+            0,
+            0,
+            0,
+            new List<StakeoutPointResult>(),
+            new List<string>());
+    }
+
     private static string FormatNumber(double value)
     {
         return value.ToString("0.###", CultureInfo.InvariantCulture);
@@ -668,10 +788,13 @@ internal static class SurveyCalcCli
               surveycalc traverse <file>
               surveycalc elevation <file>
               surveycalc closure <file>
+              surveycalc quality <file>
               surveycalc leveling <file>
+              surveycalc curve <file>
               surveycalc forward <file>
               surveycalc inverse <file>
               surveycalc offset <file>
+              surveycalc stakeout <file>
               surveycalc segments <file>
               surveycalc angle <value>
               surveycalc export-md <input-report.txt> <output.md>
@@ -702,6 +825,27 @@ internal static class SurveyCalcCli
               BASELINE A 1000.000 1000.000 B 1100.000 1000.000
               START_CHAINAGE 0.000
               POINT P1 1050.000 1025.000
+
+            Traverse quality rows:
+              POINTS
+              P1 1000.000 1000.000
+              ANGLES
+              90.0000
+              LIMITS
+              RELATIVE 2000
+
+            Circular curve rows:
+              CURVE C1
+              PI_CHAINAGE 1250.000
+              RADIUS 300.000
+              ANGLE 42.5000
+              DIRECTION RIGHT
+
+            Stakeout rows:
+              ORIGIN A 1000.000 1000.000
+              AZIMUTH 35.0000
+              START_CHAINAGE 0.000
+              POINT K0+020 20.000 0.000
             """);
     }
 }

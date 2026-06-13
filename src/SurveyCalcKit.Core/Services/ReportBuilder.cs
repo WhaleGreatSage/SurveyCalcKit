@@ -444,6 +444,97 @@ public sealed class ReportBuilder
         return builder.ToString();
     }
 
+    public string BuildTraverseQualityReport(
+        TraverseQualityParseResult parseResult,
+        TraverseQualityResult result,
+        ReportLanguage language = ReportLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+        ArgumentNullException.ThrowIfNull(result);
+
+        var builder = new StringBuilder();
+        AppendTitle(builder, language, "SurveyCalcKit Traverse Quality Report", "SurveyCalcKit 增强型闭合导线精度评价报告");
+        if (!parseResult.IsSuccess)
+        {
+            AppendParseErrors(builder, parseResult.Errors, language);
+            return builder.ToString();
+        }
+
+        AppendLine(builder, language, $"Point count: {result.PointCount}", $"点数: {result.PointCount}");
+        AppendLine(builder, language, $"Segment count: {result.SegmentCount}", $"边数: {result.SegmentCount}");
+        AppendLine(builder, language, $"Total length: {FormatNumber(result.TotalLength)}", $"导线总长: {FormatNumber(result.TotalLength)}");
+        AppendLine(builder, language, $"fx: {FormatNumber(result.Fx)}", $"fx: {FormatNumber(result.Fx)}");
+        AppendLine(builder, language, $"fy: {FormatNumber(result.Fy)}", $"fy: {FormatNumber(result.Fy)}");
+        AppendLine(builder, language, $"Linear closure error: {FormatNumber(result.LinearClosureError)}", $"坐标闭合差: {FormatNumber(result.LinearClosureError)}");
+        AppendLine(builder, language, $"Relative closure precision: {FormatRatio(result.RelativeClosureDenominator)}", $"相对闭合精度: {FormatRatio(result.RelativeClosureDenominator)}");
+        AppendLine(builder, language, $"Linear closure limit: {FormatNullableBoolean(result.PassesLinearClosureLimit, language)}", $"平面闭合限差: {FormatNullableBoolean(result.PassesLinearClosureLimit, language)}");
+        AppendLine(builder, language, $"Angular closure error seconds: {FormatNullable(result.AngularClosureErrorSeconds)}", $"角度闭合差(秒): {FormatNullable(result.AngularClosureErrorSeconds)}");
+        AppendLine(builder, language, $"Allowable angular closure seconds: {FormatNullable(result.AllowableAngularClosureSeconds)}", $"角度闭合限差(秒): {FormatNullable(result.AllowableAngularClosureSeconds)}");
+        AppendLine(builder, language, $"Angular closure limit: {FormatNullableBoolean(result.PassesAngularClosureLimit, language)}", $"角度闭合限差判定: {FormatNullableBoolean(result.PassesAngularClosureLimit, language)}");
+        AppendLine(builder, language, $"Quality grade: {result.QualityGrade}", $"质量等级: {result.QualityGrade}");
+        AppendTraverseQualityRows(builder, result.Segments, language);
+        AppendWarnings(builder, result.Warnings, language);
+        AppendParseErrors(builder, parseResult.Errors, language);
+        return builder.ToString();
+    }
+
+    public string BuildCircularCurveReport(
+        CircularCurveParseResult parseResult,
+        CircularCurveResult result,
+        ReportLanguage language = ReportLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+        ArgumentNullException.ThrowIfNull(result);
+
+        var builder = new StringBuilder();
+        AppendTitle(builder, language, "SurveyCalcKit Circular Curve Report", "SurveyCalcKit 道路圆曲线要素计算报告");
+        if (!parseResult.IsSuccess)
+        {
+            AppendParseErrors(builder, parseResult.Errors, language);
+            return builder.ToString();
+        }
+
+        AppendLine(builder, language, $"Curve name: {result.CurveName}", $"曲线名: {result.CurveName}");
+        AppendLine(builder, language, $"PI chainage: {FormatNumber(result.PiChainage)}", $"交点里程: {FormatNumber(result.PiChainage)}");
+        AppendLine(builder, language, $"Radius: {FormatNumber(result.Radius)}", $"半径: {FormatNumber(result.Radius)}");
+        AppendLine(builder, language, $"Deflection angle: {FormatNumber(result.DeflectionAngleDegrees)} degrees", $"转角: {FormatNumber(result.DeflectionAngleDegrees)} 度");
+        AppendLine(builder, language, $"Direction: {result.TurnDirection}", $"转向: {result.TurnDirection}");
+        AppendLine(builder, language, $"Tangent length T: {FormatNumber(result.TangentLength)}", $"切线长 T: {FormatNumber(result.TangentLength)}");
+        AppendLine(builder, language, $"Curve length L: {FormatNumber(result.CurveLength)}", $"曲线长 L: {FormatNumber(result.CurveLength)}");
+        AppendLine(builder, language, $"External distance E: {FormatNumber(result.ExternalDistance)}", $"外矢距 E: {FormatNumber(result.ExternalDistance)}");
+        AppendLine(builder, language, $"Middle ordinate M: {FormatNumber(result.MiddleOrdinate)}", $"中矢距 M: {FormatNumber(result.MiddleOrdinate)}");
+        AppendLine(builder, language, $"PC/ZY chainage: {FormatNumber(result.PcChainage)}", $"ZY/PC 里程: {FormatNumber(result.PcChainage)}");
+        AppendLine(builder, language, $"PT/YZ chainage: {FormatNumber(result.PtChainage)}", $"YZ/PT 里程: {FormatNumber(result.PtChainage)}");
+        AppendWarnings(builder, result.Warnings, language);
+        AppendParseErrors(builder, parseResult.Errors, language);
+        return builder.ToString();
+    }
+
+    public string BuildStakeoutBatchReport(
+        StakeoutBatchParseResult parseResult,
+        StakeoutBatchResult result,
+        ReportLanguage language = ReportLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+        ArgumentNullException.ThrowIfNull(result);
+
+        var builder = new StringBuilder();
+        AppendTitle(builder, language, "SurveyCalcKit Batch Stakeout Report", "SurveyCalcKit 批量放样点坐标计算报告");
+        if (!parseResult.IsSuccess)
+        {
+            AppendParseErrors(builder, parseResult.Errors, language);
+            return builder.ToString();
+        }
+
+        AppendLine(builder, language, $"Origin: {result.OriginPointName} ({FormatNumber(result.OriginX)}, {FormatNumber(result.OriginY)})", $"起算点: {result.OriginPointName} ({FormatNumber(result.OriginX)}, {FormatNumber(result.OriginY)})");
+        AppendLine(builder, language, $"Baseline azimuth: {FormatNumber(result.BaselineAzimuthDegrees)} degrees", $"基线方位角: {FormatNumber(result.BaselineAzimuthDegrees)} 度");
+        AppendLine(builder, language, $"Start chainage: {FormatNumber(result.StartChainage)}", $"起点里程: {FormatNumber(result.StartChainage)}");
+        AppendStakeoutPointRows(builder, result.Points, language);
+        AppendWarnings(builder, result.Warnings, language);
+        AppendParseErrors(builder, parseResult.Errors, language);
+        return builder.ToString();
+    }
+
     private static void AppendTitle(StringBuilder builder, ReportLanguage language, string english, string chinese)
     {
         AppendLine(builder, language, english, chinese);
@@ -645,6 +736,60 @@ public sealed class ReportBuilder
         }
     }
 
+    private static void AppendTraverseQualityRows(
+        StringBuilder builder,
+        IReadOnlyList<TraverseQualitySegmentRow> rows,
+        ReportLanguage language)
+    {
+        if (rows.Count == 0)
+        {
+            AppendLine(builder, language, "Quality segment rows: none", "精度评价边表: 无");
+            return;
+        }
+
+        AppendLine(builder, language, "Quality segment rows:", "精度评价边表:");
+        AppendLine(
+            builder,
+            language,
+            "Index | From -> To | Dx | Dy | Distance | Azimuth | Cumulative",
+            "序号 | 起点 -> 终点 | Dx | Dy | 边长 | 方位角 | 累计长度");
+
+        foreach (var row in rows)
+        {
+            builder.AppendLine(
+                $"{row.Index} | {row.From} -> {row.To} | " +
+                $"{FormatNumber(row.Dx)} | {FormatNumber(row.Dy)} | " +
+                $"{FormatNumber(row.Distance)} | {FormatNumber(row.AzimuthDegrees)} | " +
+                $"{FormatNumber(row.CumulativeLength)}");
+        }
+    }
+
+    private static void AppendStakeoutPointRows(
+        StringBuilder builder,
+        IReadOnlyList<StakeoutPointResult> points,
+        ReportLanguage language)
+    {
+        if (points.Count == 0)
+        {
+            AppendLine(builder, language, "Stakeout points: none", "放样点: 无");
+            return;
+        }
+
+        AppendLine(builder, language, "Stakeout points:", "放样点坐标表:");
+        AppendLine(
+            builder,
+            language,
+            "Point | Chainage | Offset | Side | X | Y",
+            "点名 | 里程 | 偏距 | 方向 | X | Y");
+
+        foreach (var point in points)
+        {
+            builder.AppendLine(
+                $"{point.PointName} | {FormatNumber(point.Chainage)} | {FormatNumber(point.Offset)} | " +
+                $"{point.Side} | {FormatNumber(point.X)} | {FormatNumber(point.Y)}");
+        }
+    }
+
     private static void AppendWarnings(
         StringBuilder builder,
         IReadOnlyList<string> warnings,
@@ -737,6 +882,21 @@ public sealed class ReportBuilder
         }
 
         return value ? "是" : "否";
+    }
+
+    private static string FormatNullableBoolean(bool? value, ReportLanguage language)
+    {
+        if (!value.HasValue)
+        {
+            return language == ReportLanguage.English ? "Not evaluated" : "未评价";
+        }
+
+        if (language == ReportLanguage.English)
+        {
+            return value.Value ? "Pass" : "Fail";
+        }
+
+        return value.Value ? "通过" : "不通过";
     }
 
     private static string FormatSide(string side, ReportLanguage language)

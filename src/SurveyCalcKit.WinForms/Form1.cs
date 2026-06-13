@@ -9,10 +9,13 @@ public partial class Form1 : Form
     private readonly ParseService parseService = new();
     private readonly TraverseCalculator traverseCalculator = new();
     private readonly ClosedTraverseCalculator closedTraverseCalculator = new();
+    private readonly TraverseQualityEvaluator traverseQualityEvaluator = new();
     private readonly LevelingRouteCalculator levelingRouteCalculator = new();
+    private readonly CircularCurveCalculator circularCurveCalculator = new();
     private readonly CoordinateForwardCalculator coordinateForwardCalculator = new();
     private readonly CoordinateInverseCalculator coordinateInverseCalculator = new();
     private readonly ChainageOffsetCalculator chainageOffsetCalculator = new();
+    private readonly StakeoutBatchCalculator stakeoutBatchCalculator = new();
     private readonly BatchSegmentTableCalculator batchSegmentTableCalculator = new();
     private readonly AngleConverter angleConverter = new();
     private readonly MarkdownReportExporter markdownReportExporter = new();
@@ -127,6 +130,38 @@ public partial class Form1 : Form
         reportOutputTextBox.Text = reportBuilder.BuildClosureReport(parseResult, closureResult, ReportLanguage.English);
     }
 
+    private void EvaluateQualityButton_Click(object? sender, EventArgs e)
+    {
+        var parseResult = parseService.ParseTraverseQuality(rawInputTextBox.Text);
+        if (!parseResult.IsSuccess)
+        {
+            reportOutputTextBox.Text = reportBuilder.BuildTraverseQualityReport(
+                parseResult,
+                CreateEmptyTraverseQualityResult(),
+                ReportLanguage.English);
+            return;
+        }
+
+        var result = traverseQualityEvaluator.Evaluate(parseResult.Input!);
+        reportOutputTextBox.Text = reportBuilder.BuildTraverseQualityReport(parseResult, result, ReportLanguage.English);
+    }
+
+    private void CalculateCurveButton_Click(object? sender, EventArgs e)
+    {
+        var parseResult = parseService.ParseCircularCurve(rawInputTextBox.Text);
+        if (!parseResult.IsSuccess)
+        {
+            reportOutputTextBox.Text = reportBuilder.BuildCircularCurveReport(
+                parseResult,
+                CreateEmptyCircularCurveResult(),
+                ReportLanguage.English);
+            return;
+        }
+
+        var result = circularCurveCalculator.Calculate(parseResult.Input!);
+        reportOutputTextBox.Text = reportBuilder.BuildCircularCurveReport(parseResult, result, ReportLanguage.English);
+    }
+
     private void CalculateForwardButton_Click(object? sender, EventArgs e)
     {
         var parseResult = parseService.ParseCoordinateForward(rawInputTextBox.Text);
@@ -157,6 +192,22 @@ public partial class Form1 : Form
 
         var result = chainageOffsetCalculator.Calculate(parseResult.Input!);
         reportOutputTextBox.Text = reportBuilder.BuildChainageOffsetReport(parseResult, result, ReportLanguage.English);
+    }
+
+    private void CalculateStakeoutButton_Click(object? sender, EventArgs e)
+    {
+        var parseResult = parseService.ParseStakeoutBatch(rawInputTextBox.Text);
+        if (!parseResult.IsSuccess)
+        {
+            reportOutputTextBox.Text = reportBuilder.BuildStakeoutBatchReport(
+                parseResult,
+                CreateEmptyStakeoutBatchResult(),
+                ReportLanguage.English);
+            return;
+        }
+
+        var result = stakeoutBatchCalculator.Calculate(parseResult.Input!);
+        reportOutputTextBox.Text = reportBuilder.BuildStakeoutBatchReport(parseResult, result, ReportLanguage.English);
     }
 
     private void CalculateInverseButton_Click(object? sender, EventArgs e)
@@ -322,6 +373,21 @@ public partial class Form1 : Form
     private static CoordinateInverseResult CreateEmptyInverseResult()
     {
         return new CoordinateInverseResult(string.Empty, string.Empty, 0, 0, 0, 0, null, null, new List<string>());
+    }
+
+    private static TraverseQualityResult CreateEmptyTraverseQualityResult()
+    {
+        return new TraverseQualityResult(0, 0, 0, 0, 0, 0, 0, null, null, null, null, "NotEvaluated", new List<string>(), new List<TraverseQualitySegmentRow>());
+    }
+
+    private static CircularCurveResult CreateEmptyCircularCurveResult()
+    {
+        return new CircularCurveResult(string.Empty, 0, 0, 0, string.Empty, 0, 0, 0, 0, 0, 0, new List<string>());
+    }
+
+    private static StakeoutBatchResult CreateEmptyStakeoutBatchResult()
+    {
+        return new StakeoutBatchResult(string.Empty, 0, 0, 0, 0, new List<StakeoutPointResult>(), new List<string>());
     }
 
     private static string FormatNumber(double value)

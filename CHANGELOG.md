@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 No unreleased changes.
 
+## v0.2.2 - 2026-06-12
+
+Added advanced engineering surveying modules: enhanced closed traverse quality evaluation, circular curve elements calculation, and batch stakeout point calculation. Includes Core services, parsers, CLI commands, WinForms buttons, samples, documentation, and unit tests.
+
 ## v0.1.6 - 2026-06-11
 
 - Added coordinate inverse calculation with optional height and 3D distance support.
