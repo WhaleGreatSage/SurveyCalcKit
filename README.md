@@ -28,6 +28,7 @@ The project focuses on small, readable, testable calculations that can be used f
 - Evaluate enhanced closed traverse quality with relative precision, angular closure checks, limits, and quality grades.
 - Calculate leveling route closure error and adjusted elevations.
 - Calculate circular curve elements for road and route engineering.
+- Calculate vertical curve elements and design elevations for road profile work.
 - Calculate batch stakeout point coordinates from origin, azimuth, chainage, and offset.
 - Calculate endpoint coordinates from start point, azimuth, and horizontal distance.
 - Calculate inverse coordinate values between two known points.
@@ -38,6 +39,7 @@ The project focuses on small, readable, testable calculations that can be used f
 - Translate, scale, and rotate point coordinates.
 - Import point data from Excel `.xlsx` files and export calculation results to Excel.
 - Export plain-text reports to UTF-8 Markdown files.
+- Export point records, point labels, and connected polylines to simple DXF files.
 - Generate readable English and Chinese reports.
 - Use the same core calculation library from CLI and WinForms.
 - Run automated .NET restore, build, and test checks through GitHub Actions.
@@ -68,9 +70,13 @@ samples/
   chainage_offset_sample.txt
   traverse_quality_sample.txt
   circular_curve_sample.txt
+  vertical_curve_sample.txt
   stakeout_batch_sample.txt
+  dxf_points_sample.txt
   report_sample.txt
   excel_sample.xlsx
+output/
+  .gitkeep
 .github/workflows/
   dotnet.yml                CI workflow
 ```
@@ -111,6 +117,7 @@ surveycalc closure <file>
 surveycalc quality <file>
 surveycalc leveling <file>
 surveycalc curve <file>
+surveycalc vertical-curve <file>
 surveycalc forward <file>
 surveycalc inverse <file>
 surveycalc offset <file>
@@ -118,6 +125,7 @@ surveycalc stakeout <file>
 surveycalc segments <file>
 surveycalc angle <value>
 surveycalc export-md <input-report.txt> <output.md>
+surveycalc export-dxf <input-points-file> <output-dxf-file> [--no-labels] [--polyline] [--closed] [--layer <name>]
 surveycalc transform <file> --dx <value> --dy <value> --scale <value> --angle <degrees>
 ```
 
@@ -133,6 +141,7 @@ dotnet run --project src/SurveyCalcKit.Cli -- closure samples/closed_traverse_sa
 dotnet run --project src/SurveyCalcKit.Cli -- quality samples/traverse_quality_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- leveling samples/leveling_route_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- curve samples/circular_curve_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- vertical-curve samples/vertical_curve_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- forward samples/coordinate_forward_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- inverse samples/coordinate_inverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- offset samples/chainage_offset_sample.txt
@@ -140,6 +149,7 @@ dotnet run --project src/SurveyCalcKit.Cli -- stakeout samples/stakeout_batch_sa
 dotnet run --project src/SurveyCalcKit.Cli -- segments samples/batch_segments_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- angle 53.130102
 dotnet run --project src/SurveyCalcKit.Cli -- export-md samples/report_sample.txt output/report.md
+dotnet run --project src/SurveyCalcKit.Cli -- export-dxf samples/dxf_points_sample.txt output/survey_points.dxf
 dotnet run --project src/SurveyCalcKit.Cli -- transform samples/transform_sample.txt --dx 500 --dy 1000 --scale 1.0002 --angle 15
 ```
 
@@ -151,9 +161,12 @@ The WinForms app provides:
 
 - A left multiline text box for raw point input.
 - A right multiline text box for calculation reports.
+- Buttons include `Calculate Vertical Curve` for profile design elevations and `Export DXF` for CAD-friendly point and polyline output.
 - Import, 导入 Excel, Calculate Traverse, Calculate Elevation, Calculate Leveling, Calculate Closure, Evaluate Quality, Calculate Curve, Calculate Forward, Calculate Offset, Calculate Stakeout, Calculate Inverse, Calculate Segments, Convert Angle, 导出 Excel, Export Markdown, Export Report, and Clear buttons.
 
 Use `Import` to load `.txt`, `.dat`, or `.csv` style point files. Use `导入 Excel` to load `.xlsx` point data into the raw input box. Use the calculation buttons to generate traverse, elevation, leveling, closure, quality evaluation, circular curve, stakeout, coordinate forward, coordinate inverse, batch segment, angle conversion, or chainage/offset reports. Use `Export Report`, `Export Markdown`, or `导出 Excel` to save the current report.
+
+For DXF export in WinForms, paste or import point rows in the left text box, click `Export DXF`, choose a `.dxf` path, and inspect the saved POINT, TEXT label, and polyline entities in CAD software.
 
 ## Sample Input
 
@@ -295,6 +308,52 @@ dotnet run --project src/SurveyCalcKit.Cli -- curve samples/circular_curve_sampl
 ```
 
 The report includes tangent length `T`, curve length `L`, external distance `E`, middle ordinate `M`, and PC/ZY and PT/YZ chainages. Units are assumed to be meters and degrees.
+
+## Vertical Curve Calculation / Vertical Profile Design
+
+The `vertical-curve` command calculates PVC/PVT chainages, PVC/PVT elevations, curve type, and design elevations at requested chainages from a PVI, incoming grade, outgoing grade, and curve length.
+
+```text
+VERTICAL_CURVE VC1
+PVI_CHAINAGE 1250.000
+PVI_ELEVATION 56.800
+GRADE_IN 2.000
+GRADE_OUT -1.500
+LENGTH 200.000
+CHAINAGES
+1150.000
+1200.000
+1250.000
+1300.000
+1350.000
+```
+
+Run:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- vertical-curve samples/vertical_curve_sample.txt
+```
+
+Sample output includes the algebraic grade difference, crest/sag classification, PVC/PVT chainage and elevation, and a design elevation table. Chainages outside the curve are allowed but are marked as outside and reported with warnings.
+
+## DXF Export / CAD Output
+
+The `export-dxf` command writes parsed point records to a simple UTF-8 DXF file with POINT entities, optional TEXT labels, and a connected LWPOLYLINE. Coordinates are written as-is in drawing units, so this export does not transform or adjust point coordinates.
+
+```text
+P1 1000.000 1000.000
+P2 1050.000 1000.000
+P3 1050.000 1040.000
+P4 1000.000 1040.000
+```
+
+Run:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- export-dxf samples/dxf_points_sample.txt output/survey_points.dxf
+```
+
+Optional flags include `--no-labels`, `--polyline`, `--closed`, and `--layer <name>`. The default behavior exports points, labels, and an open polyline.
 
 ## Batch Stakeout Point Calculation / 批量放样点坐标计算
 

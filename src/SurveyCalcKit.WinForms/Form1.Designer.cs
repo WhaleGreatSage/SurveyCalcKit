@@ -39,6 +39,7 @@ partial class Form1
         calculateClosureButton = new Button();
         evaluateQualityButton = new Button();
         calculateCurveButton = new Button();
+        calculateVerticalCurveButton = new Button();
         calculateForwardButton = new Button();
         calculateOffsetButton = new Button();
         calculateStakeoutButton = new Button();
@@ -46,6 +47,7 @@ partial class Form1
         calculateSegmentsButton = new Button();
         convertAngleButton = new Button();
         exportExcelButton = new Button();
+        exportDxfButton = new Button();
         exportMarkdownButton = new Button();
         exportReportButton = new Button();
         clearButton = new Button();
@@ -173,13 +175,24 @@ partial class Form1
         calculateCurveButton.UseVisualStyleBackColor = true;
         calculateCurveButton.Click += CalculateCurveButton_Click;
         //
+        // calculateVerticalCurveButton
+        //
+        calculateVerticalCurveButton.AutoSize = true;
+        calculateVerticalCurveButton.Location = new Point(980, 3);
+        calculateVerticalCurveButton.Name = "calculateVerticalCurveButton";
+        calculateVerticalCurveButton.Size = new Size(157, 30);
+        calculateVerticalCurveButton.TabIndex = 8;
+        calculateVerticalCurveButton.Text = "Calculate Vertical Curve";
+        calculateVerticalCurveButton.UseVisualStyleBackColor = true;
+        calculateVerticalCurveButton.Click += CalculateVerticalCurveButton_Click;
+        //
         // calculateForwardButton
         //
         calculateForwardButton.AutoSize = true;
-        calculateForwardButton.Location = new Point(980, 3);
+        calculateForwardButton.Location = new Point(3, 39);
         calculateForwardButton.Name = "calculateForwardButton";
         calculateForwardButton.Size = new Size(119, 30);
-        calculateForwardButton.TabIndex = 8;
+        calculateForwardButton.TabIndex = 9;
         calculateForwardButton.Text = "Calculate Forward";
         calculateForwardButton.UseVisualStyleBackColor = true;
         calculateForwardButton.Click += CalculateForwardButton_Click;
@@ -187,10 +200,10 @@ partial class Form1
         // calculateOffsetButton
         //
         calculateOffsetButton.AutoSize = true;
-        calculateOffsetButton.Location = new Point(3, 39);
+        calculateOffsetButton.Location = new Point(128, 39);
         calculateOffsetButton.Name = "calculateOffsetButton";
         calculateOffsetButton.Size = new Size(111, 30);
-        calculateOffsetButton.TabIndex = 9;
+        calculateOffsetButton.TabIndex = 10;
         calculateOffsetButton.Text = "Calculate Offset";
         calculateOffsetButton.UseVisualStyleBackColor = true;
         calculateOffsetButton.Click += CalculateOffsetButton_Click;
@@ -198,10 +211,10 @@ partial class Form1
         // calculateStakeoutButton
         //
         calculateStakeoutButton.AutoSize = true;
-        calculateStakeoutButton.Location = new Point(120, 39);
+        calculateStakeoutButton.Location = new Point(245, 39);
         calculateStakeoutButton.Name = "calculateStakeoutButton";
         calculateStakeoutButton.Size = new Size(126, 30);
-        calculateStakeoutButton.TabIndex = 10;
+        calculateStakeoutButton.TabIndex = 11;
         calculateStakeoutButton.Text = "Calculate Stakeout";
         calculateStakeoutButton.UseVisualStyleBackColor = true;
         calculateStakeoutButton.Click += CalculateStakeoutButton_Click;
@@ -209,10 +222,10 @@ partial class Form1
         // calculateInverseButton
         //
         calculateInverseButton.AutoSize = true;
-        calculateInverseButton.Location = new Point(252, 39);
+        calculateInverseButton.Location = new Point(377, 39);
         calculateInverseButton.Name = "calculateInverseButton";
         calculateInverseButton.Size = new Size(119, 30);
-        calculateInverseButton.TabIndex = 11;
+        calculateInverseButton.TabIndex = 12;
         calculateInverseButton.Text = "Calculate Inverse";
         calculateInverseButton.UseVisualStyleBackColor = true;
         calculateInverseButton.Click += CalculateInverseButton_Click;
@@ -220,10 +233,10 @@ partial class Form1
         // calculateSegmentsButton
         //
         calculateSegmentsButton.AutoSize = true;
-        calculateSegmentsButton.Location = new Point(377, 39);
+        calculateSegmentsButton.Location = new Point(502, 39);
         calculateSegmentsButton.Name = "calculateSegmentsButton";
         calculateSegmentsButton.Size = new Size(125, 30);
-        calculateSegmentsButton.TabIndex = 12;
+        calculateSegmentsButton.TabIndex = 13;
         calculateSegmentsButton.Text = "Calculate Segments";
         calculateSegmentsButton.UseVisualStyleBackColor = true;
         calculateSegmentsButton.Click += CalculateSegmentsButton_Click;
@@ -231,10 +244,10 @@ partial class Form1
         // convertAngleButton
         //
         convertAngleButton.AutoSize = true;
-        convertAngleButton.Location = new Point(508, 39);
+        convertAngleButton.Location = new Point(633, 39);
         convertAngleButton.Name = "convertAngleButton";
         convertAngleButton.Size = new Size(101, 30);
-        convertAngleButton.TabIndex = 13;
+        convertAngleButton.TabIndex = 14;
         convertAngleButton.Text = "Convert Angle";
         convertAngleButton.UseVisualStyleBackColor = true;
         convertAngleButton.Click += ConvertAngleButton_Click;
@@ -242,21 +255,32 @@ partial class Form1
         // exportExcelButton
         //
         exportExcelButton.AutoSize = true;
-        exportExcelButton.Location = new Point(615, 39);
+        exportExcelButton.Location = new Point(740, 39);
         exportExcelButton.Name = "exportExcelButton";
         exportExcelButton.Size = new Size(91, 30);
-        exportExcelButton.TabIndex = 14;
+        exportExcelButton.TabIndex = 15;
         exportExcelButton.Text = "导出 Excel";
         exportExcelButton.UseVisualStyleBackColor = true;
         exportExcelButton.Click += ExportExcelButton_Click;
         //
+        // exportDxfButton
+        //
+        exportDxfButton.AutoSize = true;
+        exportDxfButton.Location = new Point(837, 39);
+        exportDxfButton.Name = "exportDxfButton";
+        exportDxfButton.Size = new Size(91, 30);
+        exportDxfButton.TabIndex = 16;
+        exportDxfButton.Text = "Export DXF";
+        exportDxfButton.UseVisualStyleBackColor = true;
+        exportDxfButton.Click += ExportDxfButton_Click;
+        //
         // exportMarkdownButton
         //
         exportMarkdownButton.AutoSize = true;
-        exportMarkdownButton.Location = new Point(712, 39);
+        exportMarkdownButton.Location = new Point(934, 39);
         exportMarkdownButton.Name = "exportMarkdownButton";
         exportMarkdownButton.Size = new Size(120, 30);
-        exportMarkdownButton.TabIndex = 15;
+        exportMarkdownButton.TabIndex = 17;
         exportMarkdownButton.Text = "Export Markdown";
         exportMarkdownButton.UseVisualStyleBackColor = true;
         exportMarkdownButton.Click += ExportMarkdownButton_Click;
@@ -264,10 +288,10 @@ partial class Form1
         // exportReportButton
         //
         exportReportButton.AutoSize = true;
-        exportReportButton.Location = new Point(838, 39);
+        exportReportButton.Location = new Point(3, 75);
         exportReportButton.Name = "exportReportButton";
         exportReportButton.Size = new Size(105, 30);
-        exportReportButton.TabIndex = 16;
+        exportReportButton.TabIndex = 18;
         exportReportButton.Text = "Export Report";
         exportReportButton.UseVisualStyleBackColor = true;
         exportReportButton.Click += ExportReportButton_Click;
@@ -275,10 +299,10 @@ partial class Form1
         // clearButton
         //
         clearButton.AutoSize = true;
-        clearButton.Location = new Point(949, 39);
+        clearButton.Location = new Point(114, 75);
         clearButton.Name = "clearButton";
         clearButton.Size = new Size(75, 30);
-        clearButton.TabIndex = 17;
+        clearButton.TabIndex = 19;
         clearButton.Text = "Clear";
         clearButton.UseVisualStyleBackColor = true;
         clearButton.Click += ClearButton_Click;
@@ -305,8 +329,8 @@ partial class Form1
         rootLayout.Name = "rootLayout";
         rootLayout.RowCount = 2;
         rootLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-        rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 150F));
-        rootLayout.Size = new Size(1120, 720);
+        rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 180F));
+        rootLayout.Size = new Size(1120, 750);
         rootLayout.TabIndex = 0;
         //
         // textLayout
@@ -321,7 +345,7 @@ partial class Form1
         textLayout.Name = "textLayout";
         textLayout.RowCount = 1;
         textLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-        textLayout.Size = new Size(1114, 564);
+        textLayout.Size = new Size(1114, 594);
         textLayout.TabIndex = 0;
         //
         // buttonPanel
@@ -334,6 +358,7 @@ partial class Form1
         buttonPanel.Controls.Add(calculateClosureButton);
         buttonPanel.Controls.Add(evaluateQualityButton);
         buttonPanel.Controls.Add(calculateCurveButton);
+        buttonPanel.Controls.Add(calculateVerticalCurveButton);
         buttonPanel.Controls.Add(calculateForwardButton);
         buttonPanel.Controls.Add(calculateOffsetButton);
         buttonPanel.Controls.Add(calculateStakeoutButton);
@@ -341,6 +366,7 @@ partial class Form1
         buttonPanel.Controls.Add(calculateSegmentsButton);
         buttonPanel.Controls.Add(convertAngleButton);
         buttonPanel.Controls.Add(exportExcelButton);
+        buttonPanel.Controls.Add(exportDxfButton);
         buttonPanel.Controls.Add(exportMarkdownButton);
         buttonPanel.Controls.Add(exportReportButton);
         buttonPanel.Controls.Add(clearButton);
@@ -348,14 +374,14 @@ partial class Form1
         buttonPanel.Location = new Point(3, 573);
         buttonPanel.Name = "buttonPanel";
         buttonPanel.Padding = new Padding(0, 3, 0, 0);
-        buttonPanel.Size = new Size(1114, 144);
+        buttonPanel.Size = new Size(1114, 174);
         buttonPanel.TabIndex = 1;
         //
         // Form1
         //
         AutoScaleDimensions = new SizeF(7F, 17F);
         AutoScaleMode = AutoScaleMode.Font;
-        ClientSize = new Size(1120, 720);
+        ClientSize = new Size(1120, 750);
         Controls.Add(rootLayout);
         MinimumSize = new Size(1000, 560);
         Name = "Form1";
@@ -381,6 +407,7 @@ partial class Form1
     private Button calculateClosureButton;
     private Button evaluateQualityButton;
     private Button calculateCurveButton;
+    private Button calculateVerticalCurveButton;
     private Button calculateForwardButton;
     private Button calculateOffsetButton;
     private Button calculateStakeoutButton;
@@ -388,6 +415,7 @@ partial class Form1
     private Button calculateSegmentsButton;
     private Button convertAngleButton;
     private Button exportExcelButton;
+    private Button exportDxfButton;
     private Button exportMarkdownButton;
     private Button exportReportButton;
     private Button clearButton;

@@ -12,6 +12,7 @@ public partial class Form1 : Form
     private readonly TraverseQualityEvaluator traverseQualityEvaluator = new();
     private readonly LevelingRouteCalculator levelingRouteCalculator = new();
     private readonly CircularCurveCalculator circularCurveCalculator = new();
+    private readonly VerticalCurveCalculator verticalCurveCalculator = new();
     private readonly CoordinateForwardCalculator coordinateForwardCalculator = new();
     private readonly CoordinateInverseCalculator coordinateInverseCalculator = new();
     private readonly ChainageOffsetCalculator chainageOffsetCalculator = new();
@@ -19,6 +20,7 @@ public partial class Form1 : Form
     private readonly BatchSegmentTableCalculator batchSegmentTableCalculator = new();
     private readonly AngleConverter angleConverter = new();
     private readonly MarkdownReportExporter markdownReportExporter = new();
+    private readonly DxfExporter dxfExporter = new();
     private readonly ExcelService excelService = new();
     private readonly ReportBuilder reportBuilder = new();
 
@@ -160,6 +162,22 @@ public partial class Form1 : Form
 
         var result = circularCurveCalculator.Calculate(parseResult.Input!);
         reportOutputTextBox.Text = reportBuilder.BuildCircularCurveReport(parseResult, result, ReportLanguage.English);
+    }
+
+    private void CalculateVerticalCurveButton_Click(object? sender, EventArgs e)
+    {
+        var parseResult = parseService.ParseVerticalCurve(rawInputTextBox.Text);
+        if (!parseResult.IsSuccess)
+        {
+            reportOutputTextBox.Text = reportBuilder.BuildVerticalCurveReport(
+                parseResult,
+                CreateEmptyVerticalCurveResult(),
+                ReportLanguage.English);
+            return;
+        }
+
+        var result = verticalCurveCalculator.Calculate(parseResult.Input!);
+        reportOutputTextBox.Text = reportBuilder.BuildVerticalCurveReport(parseResult, result, ReportLanguage.English);
     }
 
     private void CalculateForwardButton_Click(object? sender, EventArgs e)
@@ -331,6 +349,39 @@ public partial class Form1 : Form
         }
     }
 
+    private void ExportDxfButton_Click(object? sender, EventArgs e)
+    {
+        var parseResult = parseService.ParsePoints(rawInputTextBox.Text);
+        if (!TryShowParseErrors(parseResult))
+        {
+            return;
+        }
+
+        using var dialog = new SaveFileDialog
+        {
+            DefaultExt = "dxf",
+            Filter = "DXF drawing (*.dxf)|*.dxf|All files (*.*)|*.*",
+            Title = "Export DXF"
+        };
+
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        var result = dxfExporter.Export(
+            parseResult.Points,
+            dialog.FileName,
+            new DxfExportOptions("SurveyCalcKit", true, true, true, false, 2.5));
+        reportOutputTextBox.Text =
+            $"DXF exported: {result.OutputPath}{Environment.NewLine}" +
+            $"Point count: {result.PointCount}{Environment.NewLine}" +
+            $"Polyline exported: {result.PolylineExported}{Environment.NewLine}" +
+            (result.Warnings.Count == 0
+                ? "Warnings: none"
+                : "Warnings:" + Environment.NewLine + string.Join(Environment.NewLine, result.Warnings.Select(warning => "- " + warning)));
+    }
+
     private void ClearButton_Click(object? sender, EventArgs e)
     {
         rawInputTextBox.Clear();
@@ -383,6 +434,11 @@ public partial class Form1 : Form
     private static CircularCurveResult CreateEmptyCircularCurveResult()
     {
         return new CircularCurveResult(string.Empty, 0, 0, 0, string.Empty, 0, 0, 0, 0, 0, 0, new List<string>());
+    }
+
+    private static VerticalCurveResult CreateEmptyVerticalCurveResult()
+    {
+        return new VerticalCurveResult(string.Empty, 0, 0, 0, 0, 0, 0, "NotEvaluated", 0, 0, 0, 0, new List<VerticalCurvePointResult>(), new List<string>());
     }
 
     private static StakeoutBatchResult CreateEmptyStakeoutBatchResult()

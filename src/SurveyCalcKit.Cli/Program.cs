@@ -16,9 +16,11 @@ internal static class SurveyCalcCli
     private static readonly ChainageOffsetCalculator ChainageOffsetCalculator = new();
     private static readonly BatchSegmentTableCalculator BatchSegmentTableCalculator = new();
     private static readonly CircularCurveCalculator CircularCurveCalculator = new();
+    private static readonly VerticalCurveCalculator VerticalCurveCalculator = new();
     private static readonly StakeoutBatchCalculator StakeoutBatchCalculator = new();
     private static readonly AngleConverter AngleConverter = new();
     private static readonly MarkdownReportExporter MarkdownReportExporter = new();
+    private static readonly DxfExporter DxfExporter = new();
     private static readonly CoordinateTransformService TransformService = new();
     private static readonly ExcelService ExcelService = new();
     private static readonly ReportBuilder ReportBuilder = new();
@@ -43,6 +45,7 @@ internal static class SurveyCalcCli
             "quality" => RunQuality(commandArgs),
             "leveling" => RunLeveling(commandArgs),
             "curve" => RunCurve(commandArgs),
+            "vertical-curve" => RunVerticalCurve(commandArgs),
             "forward" => RunForward(commandArgs),
             "inverse" => RunInverse(commandArgs),
             "offset" => RunOffset(commandArgs),
@@ -50,6 +53,7 @@ internal static class SurveyCalcCli
             "segments" => RunSegments(commandArgs),
             "angle" => RunAngle(commandArgs),
             "export-md" => RunExportMarkdown(commandArgs),
+            "export-dxf" => RunExportDxf(commandArgs),
             "transform" => RunTransform(commandArgs),
             _ => Fail($"Unknown command '{commandArgs[0]}'.")
         };
@@ -289,6 +293,28 @@ internal static class SurveyCalcCli
         return result.Warnings.Count == 0 ? 0 : 1;
     }
 
+    private static int RunVerticalCurve(string[] args)
+    {
+        if (!TryReadFileArgument(args, out var text))
+        {
+            return 1;
+        }
+
+        var parseResult = Parser.ParseVerticalCurve(text);
+        if (!parseResult.IsSuccess)
+        {
+            Console.Error.WriteLine(ReportBuilder.BuildVerticalCurveReport(
+                parseResult,
+                CreateEmptyVerticalCurveResult(),
+                ReportLanguage.English));
+            return 1;
+        }
+
+        var result = VerticalCurveCalculator.Calculate(parseResult.Input!);
+        Console.WriteLine(ReportBuilder.BuildVerticalCurveReport(parseResult, result));
+        return result.Points.Count > 0 ? 0 : 1;
+    }
+
     private static int RunForward(string[] args)
     {
         if (!TryReadFileArgument(args, out var text))
@@ -447,6 +473,38 @@ internal static class SurveyCalcCli
         }
 
         Console.WriteLine($"Markdown exported: {result.FilePath}");
+        return 0;
+    }
+
+    private static int RunExportDxf(string[] args)
+    {
+        if (args.Length < 3 || IsHelp(args[1]))
+        {
+            PrintUsage();
+            return 1;
+        }
+
+        var inputPath = args[1];
+        var outputPath = args[2];
+        if (!TryLoadPointInput(inputPath, out var points))
+        {
+            return 1;
+        }
+
+        if (!TryReadDxfOptions(args.Skip(3).ToArray(), out var options))
+        {
+            return 1;
+        }
+
+        var result = DxfExporter.Export(points, outputPath, options);
+        foreach (var warning in result.Warnings)
+        {
+            Console.Error.WriteLine($"Warning: {warning}");
+        }
+
+        Console.WriteLine($"DXF exported: {result.OutputPath}");
+        Console.WriteLine($"Point count: {result.PointCount}");
+        Console.WriteLine($"Polyline exported: {result.PolylineExported}");
         return 0;
     }
 
@@ -617,6 +675,61 @@ internal static class SurveyCalcCli
         return true;
     }
 
+    private static bool TryReadDxfOptions(string[] args, out DxfExportOptions options)
+    {
+        var layerName = "SurveyCalcKit";
+        var exportLabels = true;
+        var exportPolyline = true;
+        var closePolyline = false;
+
+        for (var i = 0; i < args.Length; i++)
+        {
+            var option = args[i];
+            if (IsHelp(option))
+            {
+                PrintUsage();
+                options = CreateDefaultDxfOptions();
+                return false;
+            }
+
+            switch (option.ToLowerInvariant())
+            {
+                case "--no-labels":
+                    exportLabels = false;
+                    break;
+                case "--polyline":
+                    exportPolyline = true;
+                    break;
+                case "--closed":
+                    closePolyline = true;
+                    exportPolyline = true;
+                    break;
+                case "--layer":
+                    if (i + 1 >= args.Length)
+                    {
+                        Fail("Missing value for --layer.");
+                        options = CreateDefaultDxfOptions();
+                        return false;
+                    }
+
+                    layerName = args[++i];
+                    break;
+                default:
+                    Fail($"Unknown DXF option '{option}'.");
+                    options = CreateDefaultDxfOptions();
+                    return false;
+            }
+        }
+
+        options = new DxfExportOptions(layerName, true, exportLabels, exportPolyline, closePolyline, 2.5);
+        return true;
+    }
+
+    private static DxfExportOptions CreateDefaultDxfOptions()
+    {
+        return new DxfExportOptions("SurveyCalcKit", true, true, true, false, 2.5);
+    }
+
     private static bool EnsureValidParseResult(ParseResult parseResult)
     {
         if (parseResult.IsSuccess)
@@ -747,6 +860,25 @@ internal static class SurveyCalcCli
             new List<string>());
     }
 
+    private static VerticalCurveResult CreateEmptyVerticalCurveResult()
+    {
+        return new VerticalCurveResult(
+            string.Empty,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            "NotEvaluated",
+            0,
+            0,
+            0,
+            0,
+            new List<VerticalCurvePointResult>(),
+            new List<string>());
+    }
+
     private static StakeoutBatchResult CreateEmptyStakeoutBatchResult()
     {
         return new StakeoutBatchResult(
@@ -791,6 +923,7 @@ internal static class SurveyCalcCli
               surveycalc quality <file>
               surveycalc leveling <file>
               surveycalc curve <file>
+              surveycalc vertical-curve <file>
               surveycalc forward <file>
               surveycalc inverse <file>
               surveycalc offset <file>
@@ -798,6 +931,7 @@ internal static class SurveyCalcCli
               surveycalc segments <file>
               surveycalc angle <value>
               surveycalc export-md <input-report.txt> <output.md>
+              surveycalc export-dxf <input-points-file> <output-dxf-file> [--no-labels] [--polyline] [--closed] [--layer <name>]
               surveycalc transform <file> --dx <value> --dy <value> --scale <value> --angle <degrees>
 
             Input rows:
@@ -840,6 +974,17 @@ internal static class SurveyCalcCli
               RADIUS 300.000
               ANGLE 42.5000
               DIRECTION RIGHT
+
+            Vertical curve rows:
+              VERTICAL_CURVE VC1
+              PVI_CHAINAGE 1250.000
+              PVI_ELEVATION 56.800
+              GRADE_IN 2.000
+              GRADE_OUT -1.500
+              LENGTH 200.000
+              CHAINAGES
+              1150.000
+              1200.000
 
             Stakeout rows:
               ORIGIN A 1000.000 1000.000

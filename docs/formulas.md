@@ -406,6 +406,60 @@ PT/YZ = PC/ZY + L
 
 SurveyCalcKit validates `R > 0` and `0 < Delta < 180`. Units are meters and degrees.
 
+## Vertical Curve Elements
+
+For a simple parabolic vertical curve:
+
+```text
+PVI = point of vertical intersection chainage
+E_pvi = PVI elevation
+g1 = incoming grade percent / 100
+g2 = outgoing grade percent / 100
+L = curve length
+A = g2 - g1
+```
+
+PVC and PVT chainages are calculated from the PVI:
+
+```text
+PVC = PVI - L / 2
+PVT = PVI + L / 2
+```
+
+Endpoint elevations are:
+
+```text
+PVC_Elevation = E_pvi - g1 * L / 2
+PVT_Elevation = E_pvi + g2 * L / 2
+```
+
+For a design chainage `x`:
+
+```text
+d = x - PVC
+TangentElevation = PVC_Elevation + g1 * d
+CurveElevation = PVC_Elevation + g1 * d + (A / (2 * L)) * d^2
+VerticalOffset = CurveElevation - TangentElevation
+```
+
+Curve classification uses the algebraic grade difference:
+
+- `A > 0`: sag curve.
+- `A < 0`: crest curve.
+- `A` near zero: no meaningful vertical curve.
+
+SurveyCalcKit allows design chainages outside the PVC/PVT range, marks them as outside the curve, and reports a warning. If `L <= 0`, the calculator returns warnings and avoids division by zero.
+
+## DXF Export Conventions
+
+DXF export does not change calculation formulas. It writes parsed point coordinates directly to a basic DXF `ENTITIES` section:
+
+- `POINT` entities for point locations.
+- `TEXT` entities for point labels when labels are enabled.
+- `LWPOLYLINE` for the connected point sequence when at least two points are available.
+
+Coordinates are written as X/Y drawing coordinates in the same unit as the input data, usually meters. `ClosePolyline` only closes the DXF polyline entity; it does not alter the source point list or perform traverse adjustment.
+
 ## Batch Stakeout Coordinates
 
 Stakeout uses the same azimuth convention as traverse and coordinate forward calculation: degrees counterclockwise from the positive X axis.
@@ -443,7 +497,7 @@ Offset sign convention:
 - `O < 0`: right side of the baseline direction.
 - `O = 0`: on the baseline.
 
-The batch stakeout module assumes a straight baseline. Circular alignment, spiral transition curve, and CAD/DXF export are future extensions.
+The batch stakeout module assumes a straight baseline. Circular alignment, spiral transition curve, and direct stakeout-result DXF export are future extensions.
 
 ## Coordinate Transform
 

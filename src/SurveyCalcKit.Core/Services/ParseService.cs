@@ -926,6 +926,152 @@ public sealed class ParseService
             errors);
     }
 
+    public VerticalCurveParseResult ParseVerticalCurve(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        string? curveName = null;
+        double? pviChainage = null;
+        double? pviElevation = null;
+        double? gradeIn = null;
+        double? gradeOut = null;
+        double? curveLength = null;
+        var chainages = new List<double>();
+        var errors = new List<ParseError>();
+        var readingChainages = false;
+
+        using var reader = new StringReader(text);
+        var lineNumber = 0;
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            lineNumber++;
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0)
+            {
+                continue;
+            }
+
+            var fields = SplitFields(trimmed);
+            if (readingChainages && fields.Length == 1)
+            {
+                if (!TryParseNumber(fields[0], out var chainageValue))
+                {
+                    errors.Add(CreateNumericError(lineNumber, line, "Design chainage", fields[0]));
+                    continue;
+                }
+
+                chainages.Add(chainageValue);
+                continue;
+            }
+
+            var keyword = fields[0].ToUpperInvariant();
+            if (keyword != "CHAINAGE")
+            {
+                readingChainages = false;
+            }
+
+            switch (keyword)
+            {
+                case "VERTICAL_CURVE":
+                    if (fields.Length != 2)
+                    {
+                        errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: VERTICAL_CURVE requires a curve name."));
+                        break;
+                    }
+
+                    curveName = fields[1];
+                    break;
+                case "PVI_CHAINAGE":
+                    pviChainage = ParseRequiredNumber(fields, lineNumber, line, "PVI chainage", errors);
+                    break;
+                case "PVI_ELEVATION":
+                    pviElevation = ParseRequiredNumber(fields, lineNumber, line, "PVI elevation", errors);
+                    break;
+                case "GRADE_IN":
+                    gradeIn = ParseRequiredNumber(fields, lineNumber, line, "Grade in", errors);
+                    break;
+                case "GRADE_OUT":
+                    gradeOut = ParseRequiredNumber(fields, lineNumber, line, "Grade out", errors);
+                    break;
+                case "LENGTH":
+                    curveLength = ParseRequiredNumber(fields, lineNumber, line, "Curve length", errors);
+                    break;
+                case "CHAINAGES":
+                    if (fields.Length != 1)
+                    {
+                        errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: CHAINAGES section header does not take values."));
+                        break;
+                    }
+
+                    readingChainages = true;
+                    break;
+                case "CHAINAGE":
+                    var chainage = ParseRequiredNumber(fields, lineNumber, line, "Design chainage", errors);
+                    if (chainage.HasValue)
+                    {
+                        chainages.Add(chainage.Value);
+                    }
+
+                    break;
+                default:
+                    errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: Unknown vertical curve keyword '{fields[0]}'."));
+                    break;
+            }
+        }
+
+        if (curveName is null)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Vertical curve input requires VERTICAL_CURVE name."));
+        }
+
+        if (!pviChainage.HasValue)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Vertical curve input requires PVI_CHAINAGE value."));
+        }
+
+        if (!pviElevation.HasValue)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Vertical curve input requires PVI_ELEVATION value."));
+        }
+
+        if (!gradeIn.HasValue)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Vertical curve input requires GRADE_IN value."));
+        }
+
+        if (!gradeOut.HasValue)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Vertical curve input requires GRADE_OUT value."));
+        }
+
+        if (!curveLength.HasValue)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Vertical curve input requires LENGTH value."));
+        }
+
+        if (chainages.Count == 0)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Vertical curve input requires at least one design CHAINAGE."));
+        }
+
+        if (errors.Count > 0)
+        {
+            return new VerticalCurveParseResult(null, errors);
+        }
+
+        return new VerticalCurveParseResult(
+            new VerticalCurveInput(
+                curveName!,
+                pviChainage!.Value,
+                pviElevation!.Value,
+                gradeIn!.Value,
+                gradeOut!.Value,
+                curveLength!.Value,
+                chainages),
+            errors);
+    }
+
     private static string[] SplitFields(string line)
     {
         if (line.Contains(','))
@@ -1006,5 +1152,27 @@ public sealed class ParseService
         }
 
         return direction;
+    }
+
+    private static double? ParseRequiredNumber(
+        IReadOnlyList<string> fields,
+        int lineNumber,
+        string rawLine,
+        string fieldName,
+        List<ParseError> errors)
+    {
+        if (fields.Count != 2)
+        {
+            errors.Add(new ParseError(lineNumber, rawLine, $"Line {lineNumber}: {fields[0]} requires one numeric value."));
+            return null;
+        }
+
+        if (!TryParseNumber(fields[1], out var value))
+        {
+            errors.Add(CreateNumericError(lineNumber, rawLine, fieldName, fields[1]));
+            return null;
+        }
+
+        return value;
     }
 }

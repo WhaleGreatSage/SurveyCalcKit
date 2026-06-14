@@ -535,6 +535,38 @@ public sealed class ReportBuilder
         return builder.ToString();
     }
 
+    public string BuildVerticalCurveReport(
+        VerticalCurveParseResult parseResult,
+        VerticalCurveResult result,
+        ReportLanguage language = ReportLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+        ArgumentNullException.ThrowIfNull(result);
+
+        var builder = new StringBuilder();
+        AppendTitle(builder, language, "SurveyCalcKit Vertical Curve Report", "SurveyCalcKit 竖曲线要素计算报告");
+        if (!parseResult.IsSuccess)
+        {
+            AppendParseErrors(builder, parseResult.Errors, language);
+            return builder.ToString();
+        }
+
+        AppendLine(builder, language, $"Curve name: {result.CurveName}", $"曲线名: {result.CurveName}");
+        AppendLine(builder, language, $"PVI chainage: {FormatNumber(result.PviChainage)}", $"PVI 里程: {FormatNumber(result.PviChainage)}");
+        AppendLine(builder, language, $"PVI elevation: {FormatNumber(result.PviElevation)}", $"PVI 高程: {FormatNumber(result.PviElevation)}");
+        AppendLine(builder, language, $"Grade in: {FormatNumber(result.GradeInPercent)}%", $"进入坡度: {FormatNumber(result.GradeInPercent)}%");
+        AppendLine(builder, language, $"Grade out: {FormatNumber(result.GradeOutPercent)}%", $"退出坡度: {FormatNumber(result.GradeOutPercent)}%");
+        AppendLine(builder, language, $"Algebraic grade difference: {FormatNumber(result.AlgebraicGradeDifferencePercent)}%", $"坡度代数差: {FormatNumber(result.AlgebraicGradeDifferencePercent)}%");
+        AppendLine(builder, language, $"Curve type: {result.CurveType}", $"曲线类型: {result.CurveType}");
+        AppendLine(builder, language, $"Curve length: {FormatNumber(result.CurveLength)}", $"曲线长度: {FormatNumber(result.CurveLength)}");
+        AppendLine(builder, language, $"PVC chainage/elevation: {FormatNumber(result.PvcChainage)} / {FormatNumber(result.PvcElevation)}", $"PVC 里程/高程: {FormatNumber(result.PvcChainage)} / {FormatNumber(result.PvcElevation)}");
+        AppendLine(builder, language, $"PVT chainage/elevation: {FormatNumber(result.PvtChainage)} / {FormatNumber(result.PvtElevation)}", $"PVT 里程/高程: {FormatNumber(result.PvtChainage)} / {FormatNumber(result.PvtElevation)}");
+        AppendVerticalCurvePointRows(builder, result.Points, language);
+        AppendWarnings(builder, result.Warnings, language);
+        AppendParseErrors(builder, parseResult.Errors, language);
+        return builder.ToString();
+    }
+
     private static void AppendTitle(StringBuilder builder, ReportLanguage language, string english, string chinese)
     {
         AppendLine(builder, language, english, chinese);
@@ -787,6 +819,33 @@ public sealed class ReportBuilder
             builder.AppendLine(
                 $"{point.PointName} | {FormatNumber(point.Chainage)} | {FormatNumber(point.Offset)} | " +
                 $"{point.Side} | {FormatNumber(point.X)} | {FormatNumber(point.Y)}");
+        }
+    }
+
+    private static void AppendVerticalCurvePointRows(
+        StringBuilder builder,
+        IReadOnlyList<VerticalCurvePointResult> points,
+        ReportLanguage language)
+    {
+        if (points.Count == 0)
+        {
+            AppendLine(builder, language, "Design elevations: none", "设计高程: 无");
+            return;
+        }
+
+        AppendLine(builder, language, "Design elevations:", "设计高程表:");
+        AppendLine(
+            builder,
+            language,
+            "Chainage | TangentElevation | CurveElevation | VerticalOffset | InsideCurve",
+            "里程 | 切线高程 | 曲线高程 | 竖距 | 曲线范围内");
+
+        foreach (var point in points)
+        {
+            builder.AppendLine(
+                $"{FormatNumber(point.Chainage)} | {FormatNumber(point.TangentElevation)} | " +
+                $"{FormatNumber(point.CurveElevation)} | {FormatNumber(point.VerticalOffset)} | " +
+                $"{FormatBoolean(point.IsInsideCurve, language)}");
         }
     }
 

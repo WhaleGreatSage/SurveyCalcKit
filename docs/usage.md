@@ -27,6 +27,7 @@ dotnet run --project src/SurveyCalcKit.Cli -- closure samples/closed_traverse_sa
 dotnet run --project src/SurveyCalcKit.Cli -- quality samples/traverse_quality_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- leveling samples/leveling_route_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- curve samples/circular_curve_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- vertical-curve samples/vertical_curve_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- forward samples/coordinate_forward_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- inverse samples/coordinate_inverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- offset samples/chainage_offset_sample.txt
@@ -34,6 +35,7 @@ dotnet run --project src/SurveyCalcKit.Cli -- stakeout samples/stakeout_batch_sa
 dotnet run --project src/SurveyCalcKit.Cli -- segments samples/batch_segments_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- angle 53.130102
 dotnet run --project src/SurveyCalcKit.Cli -- export-md samples/report_sample.txt output/report.md
+dotnet run --project src/SurveyCalcKit.Cli -- export-dxf samples/dxf_points_sample.txt output/survey_points.dxf
 dotnet run --project src/SurveyCalcKit.Cli -- transform samples/transform_sample.txt --dx 500 --dy 1000 --scale 1.0002 --angle 15
 ```
 
@@ -203,6 +205,46 @@ DIRECTION,RIGHT
 
 The report includes tangent length, curve length, external distance, middle ordinate, and PC/ZY and PT/YZ chainages.
 
+## Vertical Curve Calculation
+
+Use the `vertical-curve` command for road profile vertical curve element calculation and design elevations:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- vertical-curve samples/vertical_curve_sample.txt
+```
+
+Input format:
+
+```text
+VERTICAL_CURVE VC1
+PVI_CHAINAGE 1250.000
+PVI_ELEVATION 56.800
+GRADE_IN 2.000
+GRADE_OUT -1.500
+LENGTH 200.000
+CHAINAGES
+1150.000
+1200.000
+1250.000
+1300.000
+1350.000
+```
+
+Comma-separated rows are also supported where reasonable:
+
+```text
+VERTICAL_CURVE,VC1
+PVI_CHAINAGE,1250.000
+PVI_ELEVATION,56.800
+GRADE_IN,2.000
+GRADE_OUT,-1.500
+LENGTH,200.000
+CHAINAGE,1150.000
+CHAINAGE,1200.000
+```
+
+The report includes the PVI chainage/elevation, incoming and outgoing grades, algebraic grade difference, crest/sag classification, curve length, PVC/PVT chainages and elevations, design elevation rows, and warnings for weak input.
+
 ## Batch Stakeout Point Calculation
 
 Use the `stakeout` command to calculate multiple stakeout coordinates from a straight baseline direction:
@@ -355,7 +397,26 @@ dotnet run --project src/SurveyCalcKit.Cli -- export-md samples/report_sample.tx
 
 The Markdown document includes a title, generation timestamp, and fenced text block that preserves line breaks.
 
+## DXF Export
+
+Use `export-dxf` to write point records to a simple CAD-readable DXF file:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- export-dxf samples/dxf_points_sample.txt output/survey_points.dxf
+```
+
+Default export behavior writes POINT entities, TEXT point labels, and an open LWPOLYLINE through the point sequence. Optional flags:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- export-dxf samples/dxf_points_sample.txt output/survey_points.dxf --closed --layer SurveyCalcKit
+dotnet run --project src/SurveyCalcKit.Cli -- export-dxf samples/dxf_points_sample.txt output/survey_points.dxf --no-labels
+```
+
+DXF export uses the existing point parser. It does not transform, scale, or adjust coordinates; it writes the parsed X/Y values directly as drawing coordinates.
+
 ## WinForms
+
+The WinForms surface now includes `Calculate Vertical Curve` for vertical alignment reports and `Export DXF` for CAD-friendly point, label, and polyline output.
 
 Run on Windows:
 
