@@ -6,6 +6,7 @@ return SurveyCalcCli.Run(args);
 
 internal static class SurveyCalcCli
 {
+    private const long MaxInputFileBytes = 10 * 1024 * 1024;
     private static readonly ParseService Parser = new();
     private static readonly TraverseCalculator TraverseCalculator = new();
     private static readonly ClosedTraverseCalculator ClosedTraverseCalculator = new();
@@ -17,6 +18,11 @@ internal static class SurveyCalcCli
     private static readonly BatchSegmentTableCalculator BatchSegmentTableCalculator = new();
     private static readonly CircularCurveCalculator CircularCurveCalculator = new();
     private static readonly VerticalCurveCalculator VerticalCurveCalculator = new();
+    private static readonly ClothoidCalculator ClothoidCalculator = new();
+    private static readonly HorizontalAlignmentBuilder HorizontalAlignmentBuilder = new();
+    private static readonly AlignmentQueryService AlignmentQueryService = new();
+    private static readonly CenterlineOffsetCalculator CenterlineOffsetCalculator = new();
+    private static readonly GeoJsonService GeoJsonService = new();
     private static readonly StakeoutBatchCalculator StakeoutBatchCalculator = new();
     private static readonly AngleConverter AngleConverter = new();
     private static readonly MarkdownReportExporter MarkdownReportExporter = new();
@@ -46,6 +52,10 @@ internal static class SurveyCalcCli
             "leveling" => RunLeveling(commandArgs),
             "curve" => RunCurve(commandArgs),
             "vertical-curve" => RunVerticalCurve(commandArgs),
+            "clothoid" => RunClothoid(commandArgs),
+            "alignment-info" => RunAlignmentInfo(commandArgs),
+            "alignment-query" => RunAlignmentQuery(commandArgs),
+            "centerline-offset" => RunCenterlineOffset(commandArgs),
             "forward" => RunForward(commandArgs),
             "inverse" => RunInverse(commandArgs),
             "offset" => RunOffset(commandArgs),
@@ -54,6 +64,8 @@ internal static class SurveyCalcCli
             "angle" => RunAngle(commandArgs),
             "export-md" => RunExportMarkdown(commandArgs),
             "export-dxf" => RunExportDxf(commandArgs),
+            "import-geojson" => RunImportGeoJson(commandArgs),
+            "export-geojson" => RunExportGeoJson(commandArgs),
             "transform" => RunTransform(commandArgs),
             _ => Fail($"Unknown command '{commandArgs[0]}'.")
         };
@@ -315,6 +327,111 @@ internal static class SurveyCalcCli
         return result.Points.Count > 0 ? 0 : 1;
     }
 
+    private static int RunClothoid(string[] args)
+    {
+        if (!TryReadFileArgument(args, out var text))
+        {
+            return 1;
+        }
+
+        var parseResult = Parser.ParseClothoid(text);
+        if (!parseResult.IsSuccess)
+        {
+            Console.Error.WriteLine(ReportBuilder.BuildClothoidReport(parseResult, CreateEmptyClothoidResult(), ReportLanguage.English));
+            return 1;
+        }
+
+        var result = ClothoidCalculator.Calculate(parseResult.Input!);
+        Console.WriteLine(ReportBuilder.BuildClothoidReport(parseResult, result));
+        return result.Points.Count > 0 && result.Warnings.Count == 0 ? 0 : 1;
+    }
+
+    private static int RunAlignmentInfo(string[] args)
+    {
+        if (!TryReadFileArgument(args, out var text))
+        {
+            return 1;
+        }
+
+        var parseResult = Parser.ParseHorizontalAlignment(text);
+        if (!parseResult.IsSuccess)
+        {
+            Console.Error.WriteLine(ReportBuilder.BuildHorizontalAlignmentReport(parseResult, CreateEmptyAlignmentResult(), ReportLanguage.English));
+            return 1;
+        }
+
+        var result = HorizontalAlignmentBuilder.Build(parseResult.Input!);
+        Console.WriteLine(ReportBuilder.BuildHorizontalAlignmentReport(parseResult, result));
+        return result.Alignment is not null && result.Elements.Count > 0 ? 0 : 1;
+    }
+
+    private static int RunAlignmentQuery(string[] args)
+    {
+        if (args.Length < 3 || IsHelp(args[1]))
+        {
+            PrintUsage();
+            return 1;
+        }
+
+        if (!File.Exists(args[1]) || !File.Exists(args[2]))
+        {
+            return Fail(!File.Exists(args[1]) ? $"File not found: {args[1]}" : $"File not found: {args[2]}");
+        }
+
+        if (!EnsureInputFileSize(args[1]) || !EnsureInputFileSize(args[2]))
+        {
+            return 1;
+        }
+
+        var alignmentParseResult = Parser.ParseHorizontalAlignment(File.ReadAllText(args[1]));
+        if (!alignmentParseResult.IsSuccess)
+        {
+            Console.Error.WriteLine(ReportBuilder.BuildHorizontalAlignmentReport(alignmentParseResult, CreateEmptyAlignmentResult(), ReportLanguage.English));
+            return 1;
+        }
+
+        var alignmentResult = HorizontalAlignmentBuilder.Build(alignmentParseResult.Input!);
+        if (alignmentResult.Alignment is null || alignmentResult.Elements.Count == 0)
+        {
+            Console.Error.WriteLine(ReportBuilder.BuildHorizontalAlignmentReport(alignmentParseResult, alignmentResult, ReportLanguage.English));
+            return 1;
+        }
+
+        var chainageParseResult = Parser.ParseChainages(File.ReadAllText(args[2]));
+        if (!chainageParseResult.IsSuccess)
+        {
+            foreach (var error in chainageParseResult.Errors)
+            {
+                Console.Error.WriteLine(error.Message);
+            }
+
+            return 1;
+        }
+
+        var result = AlignmentQueryService.Query(new AlignmentQueryInput(alignmentResult.Alignment, chainageParseResult.Chainages));
+        Console.WriteLine(ReportBuilder.BuildAlignmentQueryReport(result));
+        return result.Points.All(point => point.IsInsideAlignment) ? 0 : 1;
+    }
+
+    private static int RunCenterlineOffset(string[] args)
+    {
+        if (!TryReadFileArgument(args, out var text))
+        {
+            return 1;
+        }
+
+        var parseResult = Parser.ParseCenterlineOffset(text);
+        if (!parseResult.IsSuccess)
+        {
+            Console.Error.WriteLine(ReportBuilder.BuildCenterlineOffsetReport(parseResult, CreateEmptyCenterlineOffsetResult(), ReportLanguage.English));
+            return 1;
+        }
+
+        var result = CenterlineOffsetCalculator.Calculate(parseResult.Input!);
+        Console.WriteLine(ReportBuilder.BuildCenterlineOffsetReport(parseResult, result));
+        return result.Results.Count > 0 ? 0 : 1;
+    }
+
     private static int RunForward(string[] args)
     {
         if (!TryReadFileArgument(args, out var text))
@@ -508,6 +625,48 @@ internal static class SurveyCalcCli
         return 0;
     }
 
+    private static int RunImportGeoJson(string[] args)
+    {
+        if (!TryReadFileArgument(args, out var text))
+        {
+            return 1;
+        }
+
+        var result = GeoJsonService.Import(text);
+        Console.WriteLine(ReportBuilder.BuildGeoJsonImportReport(result));
+        foreach (var point in result.Points)
+        {
+            Console.WriteLine(point.H.HasValue
+                ? $"{point.Name} {FormatNumber(point.X)} {FormatNumber(point.Y)} {FormatNumber(point.H.Value)}"
+                : $"{point.Name} {FormatNumber(point.X)} {FormatNumber(point.Y)}");
+        }
+
+        return result.Points.Count > 0 ? 0 : 1;
+    }
+
+    private static int RunExportGeoJson(string[] args)
+    {
+        if (args.Length < 4 || IsHelp(args[1]))
+        {
+            PrintUsage();
+            return 1;
+        }
+
+        if (!TryLoadPointInput(args[2], out var points))
+        {
+            return 1;
+        }
+
+        var options = new GeoJsonExportOptions(
+            args[1],
+            Path.GetFileNameWithoutExtension(args[3]),
+            true,
+            new Dictionary<string, string>());
+        var result = GeoJsonService.Export(points, args[3], options);
+        Console.WriteLine(ReportBuilder.BuildGeoJsonExportReport(result));
+        return result.Warnings.Count == 0 ? 0 : 1;
+    }
+
     private static int RunTransform(string[] args)
     {
         if (!TryReadFileArgument(args, out var text))
@@ -538,6 +697,18 @@ internal static class SurveyCalcCli
             : args;
     }
 
+    private static bool EnsureInputFileSize(string path)
+    {
+        var length = new FileInfo(path).Length;
+        if (length <= MaxInputFileBytes)
+        {
+            return true;
+        }
+
+        Fail($"Input file is too large ({length} bytes). Maximum supported size is {MaxInputFileBytes} bytes.");
+        return false;
+    }
+
     private static bool TryReadFileArgument(string[] args, out string text, bool mustReadText = true)
     {
         text = string.Empty;
@@ -551,6 +722,11 @@ internal static class SurveyCalcCli
         if (!File.Exists(path))
         {
             Fail($"File not found: {path}");
+            return false;
+        }
+
+        if (!EnsureInputFileSize(path))
+        {
             return false;
         }
 
@@ -568,6 +744,11 @@ internal static class SurveyCalcCli
         if (!File.Exists(path))
         {
             Fail($"File not found: {path}");
+            return false;
+        }
+
+        if (!EnsureInputFileSize(path))
+        {
             return false;
         }
 
@@ -604,6 +785,11 @@ internal static class SurveyCalcCli
         if (!File.Exists(path))
         {
             Fail($"File not found: {path}");
+            return false;
+        }
+
+        if (!EnsureInputFileSize(path))
+        {
             return false;
         }
 
@@ -879,6 +1065,44 @@ internal static class SurveyCalcCli
             new List<string>());
     }
 
+    private static ClothoidResult CreateEmptyClothoidResult()
+    {
+        return new ClothoidResult(
+            string.Empty,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            string.Empty,
+            new List<ClothoidPointResult>(),
+            new List<string>());
+    }
+
+    private static HorizontalAlignmentResult CreateEmptyAlignmentResult()
+    {
+        return new HorizontalAlignmentResult(
+            string.Empty,
+            0,
+            0,
+            0,
+            new List<AlignmentElementSummary>(),
+            new List<string>(),
+            null);
+    }
+
+    private static CenterlineOffsetResult CreateEmptyCenterlineOffsetResult()
+    {
+        return new CenterlineOffsetResult(
+            0,
+            0,
+            new List<CenterlineOffsetPointResult>(),
+            new List<string>());
+    }
+
     private static StakeoutBatchResult CreateEmptyStakeoutBatchResult()
     {
         return new StakeoutBatchResult(
@@ -924,6 +1148,10 @@ internal static class SurveyCalcCli
               surveycalc leveling <file>
               surveycalc curve <file>
               surveycalc vertical-curve <file>
+              surveycalc clothoid <file>
+              surveycalc alignment-info <file>
+              surveycalc alignment-query <alignment-file> <chainages-file>
+              surveycalc centerline-offset <file>
               surveycalc forward <file>
               surveycalc inverse <file>
               surveycalc offset <file>
@@ -932,6 +1160,8 @@ internal static class SurveyCalcCli
               surveycalc angle <value>
               surveycalc export-md <input-report.txt> <output.md>
               surveycalc export-dxf <input-points-file> <output-dxf-file> [--no-labels] [--polyline] [--closed] [--layer <name>]
+              surveycalc import-geojson <input.geojson>
+              surveycalc export-geojson <points|line|polygon> <input-points-file> <output.geojson>
               surveycalc transform <file> --dx <value> --dy <value> --scale <value> --angle <degrees>
 
             Input rows:

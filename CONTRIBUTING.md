@@ -27,6 +27,13 @@ dotnet test
 - Use `SurveyCalcKit.Core` for all calculation logic.
 - Keep CLI and WinForms code as thin input/output layers.
 
+## Route Alignment Modules
+
+- Keep route geometry and numerical integration in Core services.
+- Preserve the project azimuth convention: degrees counterclockwise from positive X.
+- Add tolerance-based tests for floating-point geometry.
+- Do not claim CRS transformation, survey accuracy classes, or design-standard compliance unless the implementation verifies them.
+
 ## Reporting Bugs
 
 Please include:

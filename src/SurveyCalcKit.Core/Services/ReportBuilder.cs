@@ -567,6 +567,123 @@ public sealed class ReportBuilder
         return builder.ToString();
     }
 
+    public string BuildClothoidReport(
+        ClothoidParseResult parseResult,
+        ClothoidResult result,
+        ReportLanguage language = ReportLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+        ArgumentNullException.ThrowIfNull(result);
+
+        var builder = new StringBuilder();
+        AppendTitle(builder, language, "SurveyCalcKit Clothoid Report", "SurveyCalcKit 缓和曲线计算报告");
+        if (!parseResult.IsSuccess)
+        {
+            AppendParseErrors(builder, parseResult.Errors, language);
+            return builder.ToString();
+        }
+
+        AppendLine(builder, language, $"Curve name: {result.CurveName}", $"曲线名: {result.CurveName}");
+        AppendLine(builder, language, $"Start: X={FormatNumber(result.StartX)}, Y={FormatNumber(result.StartY)}", $"起点: X={FormatNumber(result.StartX)}, Y={FormatNumber(result.StartY)}");
+        AppendLine(builder, language, $"Start azimuth: {FormatNumber(result.StartAzimuthDegrees)} degrees", $"起始方位角: {FormatNumber(result.StartAzimuthDegrees)} 度");
+        AppendLine(builder, language, $"Radius: {FormatNumber(result.Radius)}", $"半径: {FormatNumber(result.Radius)}");
+        AppendLine(builder, language, $"Spiral length: {FormatNumber(result.SpiralLength)}", $"缓和曲线长: {FormatNumber(result.SpiralLength)}");
+        AppendLine(builder, language, $"A parameter: {FormatNumber(result.SpiralParameterA)}", $"A 参数: {FormatNumber(result.SpiralParameterA)}");
+        AppendLine(builder, language, $"Spiral angle: {FormatNumber(result.SpiralAngleDegrees)} degrees", $"缓和曲线角: {FormatNumber(result.SpiralAngleDegrees)} 度");
+        AppendLine(builder, language, $"Shift: {FormatNumber(result.Shift)}", $"内移值: {FormatNumber(result.Shift)}");
+        AppendClothoidRows(builder, result.Points, language);
+        AppendWarnings(builder, result.Warnings, language);
+        AppendParseErrors(builder, parseResult.Errors, language);
+        return builder.ToString();
+    }
+
+    public string BuildHorizontalAlignmentReport(
+        HorizontalAlignmentParseResult parseResult,
+        HorizontalAlignmentResult result,
+        ReportLanguage language = ReportLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+        ArgumentNullException.ThrowIfNull(result);
+
+        var builder = new StringBuilder();
+        AppendTitle(builder, language, "SurveyCalcKit Horizontal Alignment Report", "SurveyCalcKit 组合平面路线报告");
+        if (!parseResult.IsSuccess)
+        {
+            AppendParseErrors(builder, parseResult.Errors, language);
+            return builder.ToString();
+        }
+
+        AppendLine(builder, language, $"Alignment: {result.AlignmentName}", $"路线: {result.AlignmentName}");
+        AppendLine(builder, language, $"Start chainage: {FormatNumber(result.StartChainage)}", $"起始里程: {FormatNumber(result.StartChainage)}");
+        AppendLine(builder, language, $"End chainage: {FormatNumber(result.EndChainage)}", $"终点里程: {FormatNumber(result.EndChainage)}");
+        AppendLine(builder, language, $"Total length: {FormatNumber(result.TotalLength)}", $"总长度: {FormatNumber(result.TotalLength)}");
+        AppendAlignmentSummaryRows(builder, result.Elements, language);
+        AppendWarnings(builder, result.Warnings, language);
+        AppendParseErrors(builder, parseResult.Errors, language);
+        return builder.ToString();
+    }
+
+    public string BuildAlignmentQueryReport(AlignmentQueryResult result, ReportLanguage language = ReportLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+
+        var builder = new StringBuilder();
+        AppendTitle(builder, language, "SurveyCalcKit Alignment Query Report", "SurveyCalcKit 任意桩号坐标查询报告");
+        AppendLine(builder, language, $"Alignment: {result.AlignmentName}", $"路线: {result.AlignmentName}");
+        AppendAlignmentQueryRows(builder, result.Points, language);
+        AppendWarnings(builder, result.Warnings, language);
+        return builder.ToString();
+    }
+
+    public string BuildCenterlineOffsetReport(
+        CenterlineOffsetParseResult parseResult,
+        CenterlineOffsetResult result,
+        ReportLanguage language = ReportLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+        ArgumentNullException.ThrowIfNull(result);
+
+        var builder = new StringBuilder();
+        AppendTitle(builder, language, "SurveyCalcKit Centerline Offset Report", "SurveyCalcKit 多段中心线里程偏距报告");
+        if (!parseResult.IsSuccess)
+        {
+            AppendParseErrors(builder, parseResult.Errors, language);
+            return builder.ToString();
+        }
+
+        AppendLine(builder, language, $"Centerline point count: {result.CenterlinePointCount}", $"中心线点数: {result.CenterlinePointCount}");
+        AppendLine(builder, language, $"Target point count: {result.TargetPointCount}", $"目标点数: {result.TargetPointCount}");
+        AppendCenterlineOffsetRows(builder, result.Results, language);
+        AppendWarnings(builder, result.Warnings, language);
+        AppendParseErrors(builder, parseResult.Errors, language);
+        return builder.ToString();
+    }
+
+    public string BuildGeoJsonImportReport(GeoJsonImportResult result, ReportLanguage language = ReportLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+
+        var builder = new StringBuilder();
+        AppendTitle(builder, language, "SurveyCalcKit GeoJSON Import Report", "SurveyCalcKit GeoJSON 导入报告");
+        AppendLine(builder, language, $"Geometry type: {result.GeometryType}", $"几何类型: {result.GeometryType}");
+        AppendLine(builder, language, $"Imported point count: {result.Points.Count}", $"导入点数: {result.Points.Count}");
+        AppendWarnings(builder, result.Warnings, language);
+        return builder.ToString();
+    }
+
+    public string BuildGeoJsonExportReport(GeoJsonExportResult result, ReportLanguage language = ReportLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+
+        var builder = new StringBuilder();
+        AppendTitle(builder, language, "SurveyCalcKit GeoJSON Export Report", "SurveyCalcKit GeoJSON 导出报告");
+        AppendLine(builder, language, $"Output path: {result.OutputPath}", $"输出路径: {result.OutputPath}");
+        AppendLine(builder, language, $"Geometry type: {result.GeometryType}", $"几何类型: {result.GeometryType}");
+        AppendLine(builder, language, $"Coordinate count: {result.CoordinateCount}", $"坐标数量: {result.CoordinateCount}");
+        AppendWarnings(builder, result.Warnings, language);
+        return builder.ToString();
+    }
+
     private static void AppendTitle(StringBuilder builder, ReportLanguage language, string english, string chinese)
     {
         AppendLine(builder, language, english, chinese);
@@ -846,6 +963,70 @@ public sealed class ReportBuilder
                 $"{FormatNumber(point.Chainage)} | {FormatNumber(point.TangentElevation)} | " +
                 $"{FormatNumber(point.CurveElevation)} | {FormatNumber(point.VerticalOffset)} | " +
                 $"{FormatBoolean(point.IsInsideCurve, language)}");
+        }
+    }
+
+    private static void AppendClothoidRows(StringBuilder builder, IReadOnlyList<ClothoidPointResult> points, ReportLanguage language)
+    {
+        if (points.Count == 0)
+        {
+            AppendLine(builder, language, "Spiral points: none", "缓和曲线点: 无");
+            return;
+        }
+
+        AppendLine(builder, language, "Spiral points:", "缓和曲线点表:");
+        AppendLine(builder, language, "Distance | X | Y | Azimuth | Curvature | Radius | Inside", "距离 | X | Y | 方位角 | 曲率 | 半径 | 范围内");
+        foreach (var point in points)
+        {
+            builder.AppendLine($"{FormatNumber(point.DistanceFromStart)} | {FormatNumber(point.X)} | {FormatNumber(point.Y)} | {FormatNumber(point.AzimuthDegrees)} | {FormatNumber(point.Curvature)} | {FormatNumber(point.RadiusAtPoint)} | {FormatBoolean(point.IsInsideSpiral, language)}");
+        }
+    }
+
+    private static void AppendAlignmentSummaryRows(StringBuilder builder, IReadOnlyList<AlignmentElementSummary> elements, ReportLanguage language)
+    {
+        if (elements.Count == 0)
+        {
+            AppendLine(builder, language, "Elements: none", "线元: 无");
+            return;
+        }
+
+        AppendLine(builder, language, "Elements:", "线元表:");
+        AppendLine(builder, language, "Type | Name | Start | End | Length | StartX | StartY | EndX | EndY | StartAz | EndAz | StartK | EndK", "类型 | 名称 | 起始里程 | 终点里程 | 长度 | 起始X | 起始Y | 终点X | 终点Y | 起始方位角 | 终点方位角 | 起始曲率 | 终点曲率");
+        foreach (var element in elements)
+        {
+            builder.AppendLine($"{element.ElementType} | {element.ElementName} | {FormatNumber(element.StartChainage)} | {FormatNumber(element.EndChainage)} | {FormatNumber(element.Length)} | {FormatNumber(element.StartX)} | {FormatNumber(element.StartY)} | {FormatNumber(element.EndX)} | {FormatNumber(element.EndY)} | {FormatNumber(element.StartAzimuthDegrees)} | {FormatNumber(element.EndAzimuthDegrees)} | {FormatNumber(element.StartCurvature)} | {FormatNumber(element.EndCurvature)}");
+        }
+    }
+
+    private static void AppendAlignmentQueryRows(StringBuilder builder, IReadOnlyList<AlignmentQueryPointResult> points, ReportLanguage language)
+    {
+        if (points.Count == 0)
+        {
+            AppendLine(builder, language, "Query points: none", "查询点: 无");
+            return;
+        }
+
+        AppendLine(builder, language, "Query points:", "查询点表:");
+        AppendLine(builder, language, "Chainage | X | Y | Azimuth | Curvature | Radius | Type | Name | Inside", "里程 | X | Y | 方位角 | 曲率 | 半径 | 类型 | 名称 | 范围内");
+        foreach (var point in points)
+        {
+            builder.AppendLine($"{FormatNumber(point.Chainage)} | {FormatNumber(point.X)} | {FormatNumber(point.Y)} | {FormatNumber(point.AzimuthDegrees)} | {FormatNumber(point.Curvature)} | {FormatNumber(point.Radius)} | {point.ElementType} | {point.ElementName} | {FormatBoolean(point.IsInsideAlignment, language)}");
+        }
+    }
+
+    private static void AppendCenterlineOffsetRows(StringBuilder builder, IReadOnlyList<CenterlineOffsetPointResult> results, ReportLanguage language)
+    {
+        if (results.Count == 0)
+        {
+            AppendLine(builder, language, "Offset results: none", "偏距结果: 无");
+            return;
+        }
+
+        AppendLine(builder, language, "Offset results:", "偏距结果表:");
+        AppendLine(builder, language, "Target | Chainage | SignedOffset | AbsoluteOffset | Side | ProjectionX | ProjectionY | Segment", "目标点 | 里程 | 有符号偏距 | 绝对偏距 | 方向 | 投影X | 投影Y | 线段");
+        foreach (var result in results)
+        {
+            builder.AppendLine($"{result.TargetPointName} | {FormatNumber(result.Chainage)} | {FormatNumber(result.SignedOffset)} | {FormatNumber(result.AbsoluteOffset)} | {FormatSide(result.Side, language)} | {FormatNumber(result.ProjectionX)} | {FormatNumber(result.ProjectionY)} | {result.SegmentFrom}->{result.SegmentTo}");
         }
     }
 

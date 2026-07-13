@@ -460,6 +460,82 @@ DXF export does not change calculation formulas. It writes parsed point coordina
 
 Coordinates are written as X/Y drawing coordinates in the same unit as the input data, usually meters. `ClosePolyline` only closes the DXF polyline entity; it does not alter the source point list or perform traverse adjustment.
 
+## Route Alignment Azimuth Convention
+
+Route-alignment calculations use the same convention as coordinate forward and traverse calculations:
+
+~~~text
+X = planar horizontal coordinate
+Y = planar vertical coordinate
+Azimuth = degrees counterclockwise from the positive X axis
+LEFT direction sign = +1
+RIGHT direction sign = -1
+~~~
+
+Heading is always normalized to 0 through 360 degrees for output. A left curve increases the heading; a right curve decreases it.
+
+## Clothoid Transition Curve
+
+For radius R, spiral length Ls, signed direction d, and local distance s:
+
+~~~text
+A = sqrt(R * Ls)
+k(s) = d * s / (R * Ls)
+theta(s) = d * s^2 / (2 * R * Ls)
+shift = Ls^2 / (24 * R)
+~~~
+
+SurveyCalcKit evaluates coordinates with deterministic composite Simpson integration rather than a first-order coordinate approximation:
+
+~~~text
+x(s) = integral(0..s) cos(heading0 + theta(u)) du
+y(s) = integral(0..s) sin(heading0 + theta(u)) du
+~~~
+
+For reverse clothoids, curvature changes linearly from d/R to zero. For a general transition with start curvature k0 and end curvature k1:
+
+~~~text
+k(s) = k0 + (k1 - k0) * s / L
+heading(s) = heading0 + k0 * s + (k1 - k0) * s^2 / (2 * L)
+~~~
+
+## Composite Horizontal Alignment
+
+Each tangent, clothoid, or circular-arc element starts from the calculated end state of its predecessor. Tangents have zero curvature. Circular arcs use constant signed curvature:
+
+~~~text
+k = d / R
+heading(s) = heading0 + k * s
+x(s) = x0 + (sin(heading(s)) - sin(heading0)) / k
+y(s) = y0 + (-cos(heading(s)) + cos(heading0)) / k
+~~~
+
+The engine reports curvature discontinuity warnings when an element's required start curvature does not match the preceding computed end curvature.
+
+## Chainage Query and Multi-Segment Projection
+
+An alignment query locates the element whose chainage interval contains the requested value, then evaluates that element at local distance:
+
+~~~text
+localDistance = queryChainage - elementStartChainage
+~~~
+
+For sampled centerlines, every segment is tested. With segment vector v and point vector w:
+
+~~~text
+tRaw = dot(w, v) / dot(v, v)
+t = clamp(tRaw, 0, 1)
+projection = start + t * v
+chainage = chainageStart + t * (chainageEnd - chainageStart)
+cross = vx * wy - vy * wx
+~~~
+
+The nearest projection is selected. Cross-product sign determines signed offset: positive is Left, negative is Right, and zero is OnLine.
+
+## GeoJSON Coordinate Order
+
+GeoJSON import and export uses coordinate arrays in [X, Y] order, with optional [X, Y, H]. Values are treated as raw planar numbers. SurveyCalcKit does not infer, transform, or validate coordinate reference systems, longitude/latitude, or map projections.
+
 ## Batch Stakeout Coordinates
 
 Stakeout uses the same azimuth convention as traverse and coordinate forward calculation: degrees counterclockwise from the positive X axis.

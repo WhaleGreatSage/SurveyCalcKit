@@ -6,6 +6,21 @@ All notable changes to this project will be documented in this file.
 
 No unreleased changes.
 
+## v0.3.0 - 2026-07-13
+
+### Added
+
+- Clothoid transition curve calculation with deterministic numerical coordinate integration.
+- Composite tangent, clothoid, and circular-arc horizontal alignment engine.
+- Arbitrary-chainage coordinate, azimuth, curvature, and radius queries.
+- Multi-segment centerline chainage and signed-offset reverse calculation.
+- GeoJSON Point, LineString, and Polygon import/export for raw planar coordinates.
+
+### Changed
+
+- Reorganized WinForms tools into functional tabs with status reporting.
+- Expanded route-alignment samples, documentation, and unit tests.
+
 ## v0.2.3 - 2026-06-14
 
 Added vertical curve calculation and DXF export. Includes Core services, parsers, CLI commands, WinForms buttons, sample data, documentation, and unit tests.

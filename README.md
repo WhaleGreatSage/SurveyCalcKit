@@ -2,7 +2,7 @@
 
 [![.NET](https://github.com/WhaleGreatSage/SurveyCalcKit/actions/workflows/dotnet.yml/badge.svg)](https://github.com/WhaleGreatSage/SurveyCalcKit/actions/workflows/dotnet.yml)
 
-SurveyCalcKit is an open-source C#/.NET 8 surveying calculation toolkit for students, teachers, and beginner engineering surveying workflows.
+SurveyCalcKit is an open-source C#/.NET 8 surveying calculation toolkit for students, teachers, and beginner engineering surveying workflows. Version 0.3.0 adds a practical Route Centerline and Alignment Engine for tangent, transition-curve, and circular-arc workflows.
 ## 中文说明
 
 SurveyCalcKit 是一个面向测绘学生和初学者的开源测绘计算工具包，目标是用清晰、可测试的 C#/.NET 代码复现常见测绘计算流程，包括导线边长、方位角、高差、坡度、坐标变换和计算报告生成等功能。
@@ -29,6 +29,10 @@ The project focuses on small, readable, testable calculations that can be used f
 - Calculate leveling route closure error and adjusted elevations.
 - Calculate circular curve elements for road and route engineering.
 - Calculate vertical curve elements and design elevations for road profile work.
+- Calculate clothoid transition curves with deterministic Simpson-rule coordinate integration.
+- Build composite tangent, clothoid, and circular-arc horizontal alignments.
+- Query centerline coordinates, azimuth, curvature, and radius at arbitrary chainages.
+- Calculate nearest multi-segment centerline chainage and signed offset for multiple targets.
 - Calculate batch stakeout point coordinates from origin, azimuth, chainage, and offset.
 - Calculate endpoint coordinates from start point, azimuth, and horizontal distance.
 - Calculate inverse coordinate values between two known points.
@@ -40,6 +44,7 @@ The project focuses on small, readable, testable calculations that can be used f
 - Import point data from Excel `.xlsx` files and export calculation results to Excel.
 - Export plain-text reports to UTF-8 Markdown files.
 - Export point records, point labels, and connected polylines to simple DXF files.
+- Import and export raw planar GeoJSON Point, LineString, and Polygon coordinates.
 - Generate readable English and Chinese reports.
 - Use the same core calculation library from CLI and WinForms.
 - Run automated .NET restore, build, and test checks through GitHub Actions.
@@ -71,6 +76,13 @@ samples/
   traverse_quality_sample.txt
   circular_curve_sample.txt
   vertical_curve_sample.txt
+  clothoid_sample.txt
+  composite_alignment_sample.txt
+  alignment_chainages_sample.txt
+  centerline_offset_sample.txt
+  points_sample.geojson
+  centerline_sample.geojson
+  polygon_sample.geojson
   stakeout_batch_sample.txt
   dxf_points_sample.txt
   report_sample.txt
@@ -103,6 +115,12 @@ Run the WinForms app on Windows:
 dotnet run --project src/SurveyCalcKit.WinForms
 ```
 
+## What Is New in v0.3.0
+
+The Route Centerline and Alignment Engine introduces clothoid transition curves, composite horizontal alignments, arbitrary-chainage coordinate queries, multi-segment centerline offset calculations, and GeoJSON interchange. The route engine is planar only: X/Y values are treated as supplied, and it does not perform CRS, longitude/latitude, or vertical-alignment transformations.
+
+SurveyCalcKit uses mathematical planar azimuths throughout route calculations: degrees are measured counterclockwise from the positive X axis. A left curve increases heading; a right curve decreases heading.
+
 ## CLI Usage
 
 The CLI executable is named `surveycalc` when published or built.
@@ -118,6 +136,10 @@ surveycalc quality <file>
 surveycalc leveling <file>
 surveycalc curve <file>
 surveycalc vertical-curve <file>
+surveycalc clothoid <file>
+surveycalc alignment-info <file>
+surveycalc alignment-query <alignment-file> <chainages-file>
+surveycalc centerline-offset <file>
 surveycalc forward <file>
 surveycalc inverse <file>
 surveycalc offset <file>
@@ -126,6 +148,8 @@ surveycalc segments <file>
 surveycalc angle <value>
 surveycalc export-md <input-report.txt> <output.md>
 surveycalc export-dxf <input-points-file> <output-dxf-file> [--no-labels] [--polyline] [--closed] [--layer <name>]
+surveycalc import-geojson <input.geojson>
+surveycalc export-geojson <points|line|polygon> <input-points-file> <output.geojson>
 surveycalc transform <file> --dx <value> --dy <value> --scale <value> --angle <degrees>
 ```
 
@@ -142,6 +166,10 @@ dotnet run --project src/SurveyCalcKit.Cli -- quality samples/traverse_quality_s
 dotnet run --project src/SurveyCalcKit.Cli -- leveling samples/leveling_route_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- curve samples/circular_curve_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- vertical-curve samples/vertical_curve_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- clothoid samples/clothoid_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- alignment-info samples/composite_alignment_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- alignment-query samples/composite_alignment_sample.txt samples/alignment_chainages_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- centerline-offset samples/centerline_offset_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- forward samples/coordinate_forward_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- inverse samples/coordinate_inverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- offset samples/chainage_offset_sample.txt
@@ -150,6 +178,8 @@ dotnet run --project src/SurveyCalcKit.Cli -- segments samples/batch_segments_sa
 dotnet run --project src/SurveyCalcKit.Cli -- angle 53.130102
 dotnet run --project src/SurveyCalcKit.Cli -- export-md samples/report_sample.txt output/report.md
 dotnet run --project src/SurveyCalcKit.Cli -- export-dxf samples/dxf_points_sample.txt output/survey_points.dxf
+dotnet run --project src/SurveyCalcKit.Cli -- import-geojson samples/points_sample.geojson
+dotnet run --project src/SurveyCalcKit.Cli -- export-geojson line samples/dxf_points_sample.txt output/centerline.geojson
 dotnet run --project src/SurveyCalcKit.Cli -- transform samples/transform_sample.txt --dx 500 --dy 1000 --scale 1.0002 --angle 15
 ```
 
@@ -162,6 +192,7 @@ The WinForms app provides:
 - A left multiline text box for raw point input.
 - A right multiline text box for calculation reports.
 - Buttons include `Calculate Vertical Curve` for profile design elevations and `Export DXF` for CAD-friendly point and polyline output.
+- Tools are grouped into Basic Calculations, Traverse and Leveling, Route Alignment, Import and Export, and Reports tabs. The Route Alignment tab adds Clothoid, Alignment, Query Alignment, and Centerline Offset workflows; the import/export tab adds GeoJSON actions.
 - Import, 导入 Excel, Calculate Traverse, Calculate Elevation, Calculate Leveling, Calculate Closure, Evaluate Quality, Calculate Curve, Calculate Forward, Calculate Offset, Calculate Stakeout, Calculate Inverse, Calculate Segments, Convert Angle, 导出 Excel, Export Markdown, Export Report, and Clear buttons.
 
 Use `Import` to load `.txt`, `.dat`, or `.csv` style point files. Use `导入 Excel` to load `.xlsx` point data into the raw input box. Use the calculation buttons to generate traverse, elevation, leveling, closure, quality evaluation, circular curve, stakeout, coordinate forward, coordinate inverse, batch segment, angle conversion, or chainage/offset reports. Use `Export Report`, `Export Markdown`, or `导出 Excel` to save the current report.
@@ -354,6 +385,40 @@ dotnet run --project src/SurveyCalcKit.Cli -- export-dxf samples/dxf_points_samp
 ```
 
 Optional flags include `--no-labels`, `--polyline`, `--closed`, and `--layer <name>`. The default behavior exports points, labels, and an open polyline.
+
+## Route Centerline and Alignment Engine / 路线中线与组合平面路线
+
+Use a clothoid sample to calculate transition geometry with a numerically integrated coordinate table:
+
+~~~bash
+dotnet run --project src/SurveyCalcKit.Cli -- clothoid samples/clothoid_sample.txt
+~~~
+
+Build a complete tangent-spiral-arc-spiral-tangent route and inspect continuity:
+
+~~~bash
+dotnet run --project src/SurveyCalcKit.Cli -- alignment-info samples/composite_alignment_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- alignment-query samples/composite_alignment_sample.txt samples/alignment_chainages_sample.txt
+~~~
+
+For an independently supplied sampled centerline, calculate nearest-segment chainage and signed offset for multiple targets:
+
+~~~bash
+dotnet run --project src/SurveyCalcKit.Cli -- centerline-offset samples/centerline_offset_sample.txt
+~~~
+
+Positive route curvature and positive offsets are left of the forward direction. Negative values are right. This is a planar horizontal engine: it does not combine horizontal alignment with vertical curves, superelevation, land-survey coordinate reference systems, or least-squares adjustment.
+
+## GeoJSON Import and Export
+
+GeoJSON import supports FeatureCollection Point, LineString, and Polygon exterior-ring coordinates. Export writes Point features, a LineString, or a closed Polygon ring without changing X/Y values.
+
+~~~bash
+dotnet run --project src/SurveyCalcKit.Cli -- import-geojson samples/points_sample.geojson
+dotnet run --project src/SurveyCalcKit.Cli -- export-geojson line samples/dxf_points_sample.txt output/centerline.geojson
+~~~
+
+GeoJSON coordinates are always read and written in [X, Y] order. SurveyCalcKit treats them as raw planar values and does not perform CRS or longitude/latitude conversion.
 
 ## Batch Stakeout Point Calculation / 批量放样点坐标计算
 

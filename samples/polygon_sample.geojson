@@ -1,0 +1,13 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Survey area" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[1000.0, 1000.0], [1100.0, 1000.0], [1100.0, 1080.0], [1000.0, 1000.0]]]
+      }
+    }
+  ]
+}

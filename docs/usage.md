@@ -28,6 +28,10 @@ dotnet run --project src/SurveyCalcKit.Cli -- quality samples/traverse_quality_s
 dotnet run --project src/SurveyCalcKit.Cli -- leveling samples/leveling_route_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- curve samples/circular_curve_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- vertical-curve samples/vertical_curve_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- clothoid samples/clothoid_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- alignment-info samples/composite_alignment_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- alignment-query samples/composite_alignment_sample.txt samples/alignment_chainages_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- centerline-offset samples/centerline_offset_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- forward samples/coordinate_forward_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- inverse samples/coordinate_inverse_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- offset samples/chainage_offset_sample.txt
@@ -36,6 +40,8 @@ dotnet run --project src/SurveyCalcKit.Cli -- segments samples/batch_segments_sa
 dotnet run --project src/SurveyCalcKit.Cli -- angle 53.130102
 dotnet run --project src/SurveyCalcKit.Cli -- export-md samples/report_sample.txt output/report.md
 dotnet run --project src/SurveyCalcKit.Cli -- export-dxf samples/dxf_points_sample.txt output/survey_points.dxf
+dotnet run --project src/SurveyCalcKit.Cli -- import-geojson samples/points_sample.geojson
+dotnet run --project src/SurveyCalcKit.Cli -- export-geojson line samples/dxf_points_sample.txt output/centerline.geojson
 dotnet run --project src/SurveyCalcKit.Cli -- transform samples/transform_sample.txt --dx 500 --dy 1000 --scale 1.0002 --angle 15
 ```
 
@@ -413,6 +419,75 @@ dotnet run --project src/SurveyCalcKit.Cli -- export-dxf samples/dxf_points_samp
 ```
 
 DXF export uses the existing point parser. It does not transform, scale, or adjust coordinates; it writes the parsed X/Y values directly as drawing coordinates.
+
+## Clothoid Transition Curve
+
+The clothoid command calculates a zero-to-arc transition with numerical coordinate integration:
+
+~~~text
+CLOTHOID S1
+START 1000.000 1000.000
+AZIMUTH 20.0000
+RADIUS 300.000
+LENGTH 80.000
+DIRECTION RIGHT
+DISTANCES
+0
+20
+40
+60
+80
+~~~
+
+~~~bash
+dotnet run --project src/SurveyCalcKit.Cli -- clothoid samples/clothoid_sample.txt
+~~~
+
+LEFT adds heading counterclockwise from the positive X axis; RIGHT subtracts it. Requested distances outside the spiral are clamped to the nearest endpoint and reported with a warning.
+
+## Composite Alignment and Chainage Queries
+
+The alignment parser connects each element from the computed end state of the previous one:
+
+~~~text
+ALIGNMENT Route-A
+START_CHAINAGE 0.000
+START 1000.000 1000.000
+AZIMUTH 15.0000
+ELEMENT TANGENT T1 LENGTH 100.000
+ELEMENT CLOTHOID S1 LENGTH 60.000 RADIUS 300.000 DIRECTION LEFT
+ELEMENT ARC C1 RADIUS 300.000 ANGLE 35.0000 DIRECTION LEFT
+ELEMENT CLOTHOID S2 LENGTH 60.000 RADIUS 300.000 DIRECTION LEFT REVERSE
+ELEMENT TANGENT T2 LENGTH 150.000
+~~~
+
+REVERSE on a clothoid changes curvature from the arc value back to zero. Query chainages are separate one-value-per-line files:
+
+~~~bash
+dotnet run --project src/SurveyCalcKit.Cli -- alignment-info samples/composite_alignment_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- alignment-query samples/composite_alignment_sample.txt samples/alignment_chainages_sample.txt
+~~~
+
+## Multi-Segment Centerline Offset
+
+centerline-offset chooses the nearest projection over every consecutive centerline segment, then interpolates chainage and reports signed offset:
+
+~~~bash
+dotnet run --project src/SurveyCalcKit.Cli -- centerline-offset samples/centerline_offset_sample.txt
+~~~
+
+The input has CENTERLINE rows in Name Chainage X Y form and TARGETS rows in Name X Y form. Positive offset is left of the selected segment direction; negative offset is right.
+
+## GeoJSON
+
+Import accepts FeatureCollection Point, LineString, and Polygon exterior-ring coordinates. Export supports points, line, and polygon:
+
+~~~bash
+dotnet run --project src/SurveyCalcKit.Cli -- import-geojson samples/points_sample.geojson
+dotnet run --project src/SurveyCalcKit.Cli -- export-geojson line samples/dxf_points_sample.txt output/centerline.geojson
+~~~
+
+GeoJSON coordinate order is [X, Y]. SurveyCalcKit preserves those values as raw planar coordinates and does not transform CRS or geographic longitude/latitude values.
 
 ## WinForms
 

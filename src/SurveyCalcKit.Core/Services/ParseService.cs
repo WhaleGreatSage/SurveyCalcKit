@@ -1072,6 +1072,405 @@ public sealed class ParseService
             errors);
     }
 
+    public ClothoidParseResult ParseClothoid(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        string? curveName = null;
+        double? startX = null;
+        double? startY = null;
+        double? azimuth = null;
+        double? radius = null;
+        double? length = null;
+        string? direction = null;
+        var distances = new List<double>();
+        var errors = new List<ParseError>();
+        var readingDistances = false;
+
+        using var reader = new StringReader(text);
+        var lineNumber = 0;
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            lineNumber++;
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0)
+            {
+                continue;
+            }
+
+            var fields = SplitFields(trimmed);
+            if (readingDistances && fields.Length == 1 && TryParseNumber(fields[0], out var distanceValue))
+            {
+                distances.Add(distanceValue);
+                continue;
+            }
+
+            var keyword = fields[0].ToUpperInvariant();
+            switch (keyword)
+            {
+                case "CLOTHOID":
+                    if (fields.Length != 2)
+                    {
+                        errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: CLOTHOID requires a curve name."));
+                    }
+                    else
+                    {
+                        curveName = fields[1];
+                    }
+
+                    break;
+                case "START":
+                    if (fields.Length != 3 || !TryParseNumber(fields[1], out var parsedStartX) || !TryParseNumber(fields[2], out var parsedStartY))
+                    {
+                        errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: START requires X and Y numeric values."));
+                    }
+                    else
+                    {
+                        startX = parsedStartX;
+                        startY = parsedStartY;
+                    }
+
+                    break;
+                case "AZIMUTH":
+                    azimuth = ParseRequiredNumber(fields, lineNumber, line, "Azimuth", errors);
+                    break;
+                case "RADIUS":
+                    radius = ParseRequiredNumber(fields, lineNumber, line, "Radius", errors);
+                    break;
+                case "LENGTH":
+                    length = ParseRequiredNumber(fields, lineNumber, line, "Spiral length", errors);
+                    break;
+                case "DIRECTION":
+                    if (fields.Length != 2)
+                    {
+                        errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: DIRECTION requires LEFT or RIGHT."));
+                    }
+                    else
+                    {
+                        direction = NormalizeDirectionText(fields[1]);
+                    }
+
+                    break;
+                case "DISTANCES":
+                    if (fields.Length != 1)
+                    {
+                        errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: DISTANCES does not take values."));
+                    }
+                    else
+                    {
+                        readingDistances = true;
+                    }
+
+                    break;
+                case "DISTANCE":
+                    var distance = ParseRequiredNumber(fields, lineNumber, line, "Distance", errors);
+                    if (distance.HasValue)
+                    {
+                        distances.Add(distance.Value);
+                    }
+
+                    break;
+                default:
+                    errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: Unknown clothoid keyword '{fields[0]}'."));
+                    break;
+            }
+        }
+
+        if (curveName is null || !startX.HasValue || !startY.HasValue || !azimuth.HasValue || !radius.HasValue || !length.HasValue || direction is null)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Clothoid input requires CLOTHOID, START, AZIMUTH, RADIUS, LENGTH, and DIRECTION."));
+        }
+
+        if (distances.Count == 0)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Clothoid input requires at least one distance."));
+        }
+
+        return errors.Count > 0
+            ? new ClothoidParseResult(null, errors)
+            : new ClothoidParseResult(new ClothoidInput(curveName!, startX!.Value, startY!.Value, azimuth!.Value, radius!.Value, length!.Value, direction!, distances), errors);
+    }
+
+    public HorizontalAlignmentParseResult ParseHorizontalAlignment(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        string? alignmentName = null;
+        double? startChainage = null;
+        double? startX = null;
+        double? startY = null;
+        double? azimuth = null;
+        var elements = new List<AlignmentElementDefinition>();
+        var errors = new List<ParseError>();
+
+        using var reader = new StringReader(text);
+        var lineNumber = 0;
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            lineNumber++;
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0)
+            {
+                continue;
+            }
+
+            var fields = SplitFields(trimmed);
+            var keyword = fields[0].ToUpperInvariant();
+            switch (keyword)
+            {
+                case "ALIGNMENT":
+                    if (fields.Length != 2)
+                    {
+                        errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: ALIGNMENT requires a name."));
+                    }
+                    else
+                    {
+                        alignmentName = fields[1];
+                    }
+
+                    break;
+                case "START_CHAINAGE":
+                    startChainage = ParseRequiredNumber(fields, lineNumber, line, "Start chainage", errors);
+                    break;
+                case "START":
+                    if (fields.Length != 3 || !TryParseNumber(fields[1], out var parsedX) || !TryParseNumber(fields[2], out var parsedY))
+                    {
+                        errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: START requires X and Y numeric values."));
+                    }
+                    else
+                    {
+                        startX = parsedX;
+                        startY = parsedY;
+                    }
+
+                    break;
+                case "AZIMUTH":
+                    azimuth = ParseRequiredNumber(fields, lineNumber, line, "Azimuth", errors);
+                    break;
+                case "ELEMENT":
+                    ParseAlignmentElement(fields, lineNumber, line, elements, errors);
+                    break;
+                default:
+                    errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: Unknown alignment keyword '{fields[0]}'."));
+                    break;
+            }
+        }
+
+        if (alignmentName is null || !startChainage.HasValue || !startX.HasValue || !startY.HasValue || !azimuth.HasValue)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Alignment input requires ALIGNMENT, START_CHAINAGE, START, and AZIMUTH."));
+        }
+
+        if (elements.Count == 0)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Alignment input requires at least one ELEMENT."));
+        }
+
+        return errors.Count > 0
+            ? new HorizontalAlignmentParseResult(null, errors)
+            : new HorizontalAlignmentParseResult(new HorizontalAlignmentInput(alignmentName!, startChainage!.Value, startX!.Value, startY!.Value, azimuth!.Value, elements), errors);
+    }
+
+    public ChainageListParseResult ParseChainages(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        var chainages = new List<double>();
+        var errors = new List<ParseError>();
+        using var reader = new StringReader(text);
+        var lineNumber = 0;
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            lineNumber++;
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0)
+            {
+                continue;
+            }
+
+            if (!TryParseNumber(trimmed, out var chainage))
+            {
+                errors.Add(CreateNumericError(lineNumber, line, "Chainage", trimmed));
+                continue;
+            }
+
+            chainages.Add(chainage);
+        }
+
+        if (chainages.Count == 0)
+        {
+            errors.Add(new ParseError(0, string.Empty, "At least one chainage is required."));
+        }
+
+        return new ChainageListParseResult(chainages, errors);
+    }
+
+    public CenterlineOffsetParseResult ParseCenterlineOffset(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        var centerline = new List<CenterlinePoint>();
+        var targets = new List<PointRecord>();
+        var errors = new List<ParseError>();
+        var section = string.Empty;
+
+        using var reader = new StringReader(text);
+        var lineNumber = 0;
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            lineNumber++;
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0)
+            {
+                continue;
+            }
+
+            var fields = SplitFields(trimmed);
+            if (fields.Length == 1 && string.Equals(fields[0], "CENTERLINE", StringComparison.OrdinalIgnoreCase))
+            {
+                section = "CENTERLINE";
+                continue;
+            }
+
+            if (fields.Length == 1 && string.Equals(fields[0], "TARGETS", StringComparison.OrdinalIgnoreCase))
+            {
+                section = "TARGETS";
+                continue;
+            }
+
+            if (section == "CENTERLINE")
+            {
+                if (fields.Length != 4 || !TryParseNumber(fields[1], out var chainage) || !TryParseNumber(fields[2], out var x) || !TryParseNumber(fields[3], out var y))
+                {
+                    errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: CENTERLINE rows require Name Chainage X Y."));
+                    continue;
+                }
+
+                centerline.Add(new CenterlinePoint(fields[0], chainage, x, y));
+                continue;
+            }
+
+            if (section == "TARGETS")
+            {
+                if (fields.Length != 3 || !TryParseNumber(fields[1], out var x) || !TryParseNumber(fields[2], out var y))
+                {
+                    errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: TARGETS rows require Name X Y."));
+                    continue;
+                }
+
+                targets.Add(new PointRecord(fields[0], x, y));
+                continue;
+            }
+
+            errors.Add(new ParseError(lineNumber, line, $"Line {lineNumber}: Row must appear after CENTERLINE or TARGETS."));
+        }
+
+        if (centerline.Count == 0)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Centerline offset input requires CENTERLINE rows."));
+        }
+
+        if (targets.Count == 0)
+        {
+            errors.Add(new ParseError(0, string.Empty, "Centerline offset input requires TARGETS rows."));
+        }
+
+        return errors.Count > 0
+            ? new CenterlineOffsetParseResult(null, errors)
+            : new CenterlineOffsetParseResult(new CenterlineOffsetInput(centerline, targets), errors);
+    }
+
+    private static void ParseAlignmentElement(
+        IReadOnlyList<string> fields,
+        int lineNumber,
+        string rawLine,
+        List<AlignmentElementDefinition> elements,
+        List<ParseError> errors)
+    {
+        if (fields.Count < 3)
+        {
+            errors.Add(new ParseError(lineNumber, rawLine, $"Line {lineNumber}: ELEMENT requires type and name."));
+            return;
+        }
+
+        var type = fields[1].ToUpperInvariant();
+        var name = fields[2];
+        double? length = null;
+        double? radius = null;
+        double? angle = null;
+        string? direction = null;
+        var reverse = false;
+        for (var index = 3; index < fields.Count; index++)
+        {
+            var keyword = fields[index].ToUpperInvariant();
+            if (keyword == "REVERSE")
+            {
+                reverse = true;
+                continue;
+            }
+
+            if (index + 1 >= fields.Count)
+            {
+                errors.Add(new ParseError(lineNumber, rawLine, $"Line {lineNumber}: ELEMENT option {fields[index]} requires a value."));
+                return;
+            }
+
+            var value = fields[++index];
+            switch (keyword)
+            {
+                case "LENGTH":
+                    if (!TryParseNumber(value, out var parsedLength))
+                    {
+                        errors.Add(CreateNumericError(lineNumber, rawLine, "Element length", value));
+                    }
+                    else
+                    {
+                        length = parsedLength;
+                    }
+
+                    break;
+                case "RADIUS":
+                    if (!TryParseNumber(value, out var parsedRadius))
+                    {
+                        errors.Add(CreateNumericError(lineNumber, rawLine, "Element radius", value));
+                    }
+                    else
+                    {
+                        radius = parsedRadius;
+                    }
+
+                    break;
+                case "ANGLE":
+                    if (!TryParseNumber(value, out var parsedAngle))
+                    {
+                        errors.Add(CreateNumericError(lineNumber, rawLine, "Arc angle", value));
+                    }
+                    else
+                    {
+                        angle = parsedAngle;
+                    }
+
+                    break;
+                case "DIRECTION":
+                    direction = NormalizeDirectionText(value);
+                    break;
+                default:
+                    errors.Add(new ParseError(lineNumber, rawLine, $"Line {lineNumber}: Unknown ELEMENT option '{fields[index - 1]}'."));
+                    break;
+            }
+        }
+
+        if (type is not ("TANGENT" or "CLOTHOID" or "ARC"))
+        {
+            errors.Add(new ParseError(lineNumber, rawLine, $"Line {lineNumber}: Unsupported ELEMENT type '{fields[1]}'."));
+            return;
+        }
+
+        elements.Add(new AlignmentElementDefinition(type, name, length, radius, angle, direction, reverse));
+    }
+
     private static string[] SplitFields(string line)
     {
         if (line.Contains(','))

@@ -13,6 +13,10 @@ public partial class Form1 : Form
     private readonly LevelingRouteCalculator levelingRouteCalculator = new();
     private readonly CircularCurveCalculator circularCurveCalculator = new();
     private readonly VerticalCurveCalculator verticalCurveCalculator = new();
+    private readonly ClothoidCalculator clothoidCalculator = new();
+    private readonly HorizontalAlignmentBuilder horizontalAlignmentBuilder = new();
+    private readonly AlignmentQueryService alignmentQueryService = new();
+    private readonly CenterlineOffsetCalculator centerlineOffsetCalculator = new();
     private readonly CoordinateForwardCalculator coordinateForwardCalculator = new();
     private readonly CoordinateInverseCalculator coordinateInverseCalculator = new();
     private readonly ChainageOffsetCalculator chainageOffsetCalculator = new();
@@ -21,12 +25,121 @@ public partial class Form1 : Form
     private readonly AngleConverter angleConverter = new();
     private readonly MarkdownReportExporter markdownReportExporter = new();
     private readonly DxfExporter dxfExporter = new();
+    private readonly GeoJsonService geoJsonService = new();
     private readonly ExcelService excelService = new();
     private readonly ReportBuilder reportBuilder = new();
+    private readonly ToolStripStatusLabel statusLabel = new();
 
     public Form1()
     {
         InitializeComponent();
+        ConfigureToolTabs();
+    }
+
+    private void ConfigureToolTabs()
+    {
+        rootLayout.Controls.Remove(buttonPanel);
+        rootLayout.RowCount = 3;
+        rootLayout.RowStyles.Clear();
+        rootLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 142F));
+        rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
+
+        var toolTabs = new TabControl { Dock = DockStyle.Fill };
+        var basicTab = CreateToolTab("Basic Calculations", buttonPanel);
+        var traverseTab = CreateToolTab("Traverse and Leveling");
+        var routeTab = CreateToolTab("Route Alignment");
+        var importExportTab = CreateToolTab("Import and Export");
+        var reportsTab = CreateToolTab("Reports");
+
+        MoveButtons(
+            buttonPanel,
+            calculateTraverseButton,
+            calculateElevationButton,
+            calculateForwardButton,
+            calculateInverseButton,
+            calculateOffsetButton,
+            calculateSegmentsButton,
+            convertAngleButton);
+        MoveButtons(
+            GetToolPanel(traverseTab),
+            calculateClosureButton,
+            evaluateQualityButton,
+            calculateLevelingButton);
+        MoveButtons(
+            GetToolPanel(routeTab),
+            calculateCurveButton,
+            calculateVerticalCurveButton,
+            calculateStakeoutButton,
+            CreateToolButton("Calculate Clothoid", CalculateClothoidButton_Click),
+            CreateToolButton("Load Alignment", LoadAlignmentButton_Click),
+            CreateToolButton("Query Alignment", QueryAlignmentButton_Click),
+            CreateToolButton("Centerline Offset", CenterlineOffsetButton_Click));
+        MoveButtons(
+            GetToolPanel(importExportTab),
+            importButton,
+            importExcelButton,
+            CreateToolButton("Import GeoJSON", ImportGeoJsonButton_Click),
+            exportExcelButton,
+            exportDxfButton,
+            CreateToolButton("Export GeoJSON", ExportGeoJsonButton_Click));
+        MoveButtons(
+            GetToolPanel(reportsTab),
+            exportReportButton,
+            exportMarkdownButton,
+            clearButton);
+
+        toolTabs.TabPages.Add(basicTab);
+        toolTabs.TabPages.Add(traverseTab);
+        toolTabs.TabPages.Add(routeTab);
+        toolTabs.TabPages.Add(importExportTab);
+        toolTabs.TabPages.Add(reportsTab);
+
+        var statusStrip = new StatusStrip { Dock = DockStyle.Fill, SizingGrip = false };
+        statusLabel.Text = "Ready. No data loaded.";
+        statusStrip.Items.Add(statusLabel);
+        rootLayout.Controls.Add(toolTabs, 0, 1);
+        rootLayout.Controls.Add(statusStrip, 0, 2);
+        MinimumSize = new Size(1080, 640);
+    }
+
+    private static TabPage CreateToolTab(string title, FlowLayoutPanel? existingPanel = null)
+    {
+        var panel = existingPanel ?? new FlowLayoutPanel();
+        panel.Dock = DockStyle.Fill;
+        panel.AutoScroll = true;
+        panel.WrapContents = true;
+        panel.Padding = new Padding(8);
+        var tab = new TabPage(title);
+        tab.Controls.Add(panel);
+        return tab;
+    }
+
+    private static FlowLayoutPanel GetToolPanel(TabPage tab) => (FlowLayoutPanel)tab.Controls[0];
+
+    private static Button CreateToolButton(string text, EventHandler clickHandler)
+    {
+        var button = new Button
+        {
+            AutoSize = true,
+            Text = text,
+            Margin = new Padding(4)
+        };
+        button.Click += clickHandler;
+        return button;
+    }
+
+    private static void MoveButtons(FlowLayoutPanel target, params Button[] buttons)
+    {
+        foreach (var button in buttons)
+        {
+            target.Controls.Add(button);
+        }
+    }
+
+    private void SetStatus(string dataType, string message)
+    {
+        statusLabel.Text = $"{dataType}: {message}";
     }
 
     private void ImportButton_Click(object? sender, EventArgs e)
@@ -40,6 +153,7 @@ public partial class Form1 : Form
         {
             rawInputTextBox.Text = File.ReadAllText(openFileDialog.FileName);
             reportOutputTextBox.Clear();
+            SetStatus(Path.GetExtension(openFileDialog.FileName).TrimStart('.').ToUpperInvariant(), "Raw input loaded.");
         }
         catch (IOException ex)
         {
@@ -64,11 +178,31 @@ public partial class Form1 : Form
         if (!result.IsSuccess)
         {
             reportOutputTextBox.Text = string.Join(Environment.NewLine, result.Errors);
+            SetStatus("Excel", "Import failed.");
             return;
         }
 
         rawInputTextBox.Text = string.Join(Environment.NewLine, result.Points.Select(FormatPointForInput));
         reportOutputTextBox.Text = $"Imported {result.Points.Count} point(s) from Excel.";
+        SetStatus("Excel points", $"Imported {result.Points.Count} point(s).");
+    }
+
+    private void ImportGeoJsonButton_Click(object? sender, EventArgs e)
+    {
+        using var dialog = new OpenFileDialog
+        {
+            Filter = "GeoJSON (*.geojson;*.json)|*.geojson;*.json|All files (*.*)|*.*",
+            Title = "Import GeoJSON"
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        var result = geoJsonService.Import(File.ReadAllText(dialog.FileName));
+        rawInputTextBox.Text = string.Join(Environment.NewLine, result.Points.Select(FormatPointForInput));
+        reportOutputTextBox.Text = reportBuilder.BuildGeoJsonImportReport(result, ReportLanguage.English);
+        SetStatus("GeoJSON", result.Points.Count > 0 ? $"Imported {result.Points.Count} point(s)." : "No supported coordinates were imported.");
     }
 
     private void CalculateTraverseButton_Click(object? sender, EventArgs e)
@@ -178,6 +312,92 @@ public partial class Form1 : Form
 
         var result = verticalCurveCalculator.Calculate(parseResult.Input!);
         reportOutputTextBox.Text = reportBuilder.BuildVerticalCurveReport(parseResult, result, ReportLanguage.English);
+    }
+
+    private void CalculateClothoidButton_Click(object? sender, EventArgs e)
+    {
+        var parseResult = parseService.ParseClothoid(rawInputTextBox.Text);
+        if (!parseResult.IsSuccess)
+        {
+            reportOutputTextBox.Text = reportBuilder.BuildClothoidReport(parseResult, CreateEmptyClothoidResult(), ReportLanguage.English);
+            SetStatus("Clothoid", "Input contains errors.");
+            return;
+        }
+
+        var result = clothoidCalculator.Calculate(parseResult.Input!);
+        reportOutputTextBox.Text = reportBuilder.BuildClothoidReport(parseResult, result, ReportLanguage.English);
+        SetStatus("Clothoid", result.Warnings.Count == 0 ? "Calculation complete." : "Calculation completed with warnings.");
+    }
+
+    private void LoadAlignmentButton_Click(object? sender, EventArgs e)
+    {
+        var parseResult = parseService.ParseHorizontalAlignment(rawInputTextBox.Text);
+        if (!parseResult.IsSuccess)
+        {
+            reportOutputTextBox.Text = reportBuilder.BuildHorizontalAlignmentReport(parseResult, CreateEmptyAlignmentResult(), ReportLanguage.English);
+            SetStatus("Alignment", "Input contains errors.");
+            return;
+        }
+
+        var result = horizontalAlignmentBuilder.Build(parseResult.Input!);
+        reportOutputTextBox.Text = reportBuilder.BuildHorizontalAlignmentReport(parseResult, result, ReportLanguage.English);
+        SetStatus("Alignment", result.Warnings.Count == 0 ? "Alignment loaded." : "Alignment loaded with continuity warnings.");
+    }
+
+    private void QueryAlignmentButton_Click(object? sender, EventArgs e)
+    {
+        var alignmentParseResult = parseService.ParseHorizontalAlignment(rawInputTextBox.Text);
+        if (!alignmentParseResult.IsSuccess)
+        {
+            reportOutputTextBox.Text = reportBuilder.BuildHorizontalAlignmentReport(alignmentParseResult, CreateEmptyAlignmentResult(), ReportLanguage.English);
+            SetStatus("Alignment query", "Alignment input contains errors.");
+            return;
+        }
+
+        var alignmentResult = horizontalAlignmentBuilder.Build(alignmentParseResult.Input!);
+        if (alignmentResult.Alignment is null)
+        {
+            reportOutputTextBox.Text = reportBuilder.BuildHorizontalAlignmentReport(alignmentParseResult, alignmentResult, ReportLanguage.English);
+            SetStatus("Alignment query", "Alignment could not be built.");
+            return;
+        }
+
+        using var dialog = new OpenFileDialog
+        {
+            Filter = "Chainage list (*.txt;*.csv)|*.txt;*.csv|All files (*.*)|*.*",
+            Title = "Select alignment chainage list"
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        var chainageParseResult = parseService.ParseChainages(File.ReadAllText(dialog.FileName));
+        if (!chainageParseResult.IsSuccess)
+        {
+            reportOutputTextBox.Text = string.Join(Environment.NewLine, chainageParseResult.Errors.Select(error => error.Message));
+            SetStatus("Alignment query", "Chainage list contains errors.");
+            return;
+        }
+
+        var result = alignmentQueryService.Query(new AlignmentQueryInput(alignmentResult.Alignment, chainageParseResult.Chainages));
+        reportOutputTextBox.Text = reportBuilder.BuildAlignmentQueryReport(result, ReportLanguage.English);
+        SetStatus("Alignment query", result.Warnings.Count == 0 ? "Query complete." : "Query completed with warnings.");
+    }
+
+    private void CenterlineOffsetButton_Click(object? sender, EventArgs e)
+    {
+        var parseResult = parseService.ParseCenterlineOffset(rawInputTextBox.Text);
+        if (!parseResult.IsSuccess)
+        {
+            reportOutputTextBox.Text = reportBuilder.BuildCenterlineOffsetReport(parseResult, CreateEmptyCenterlineOffsetResult(), ReportLanguage.English);
+            SetStatus("Centerline offset", "Input contains errors.");
+            return;
+        }
+
+        var result = centerlineOffsetCalculator.Calculate(parseResult.Input!);
+        reportOutputTextBox.Text = reportBuilder.BuildCenterlineOffsetReport(parseResult, result, ReportLanguage.English);
+        SetStatus("Centerline offset", result.Warnings.Count == 0 ? "Calculation complete." : "Calculation completed with warnings.");
     }
 
     private void CalculateForwardButton_Click(object? sender, EventArgs e)
@@ -380,12 +600,41 @@ public partial class Form1 : Form
             (result.Warnings.Count == 0
                 ? "Warnings: none"
                 : "Warnings:" + Environment.NewLine + string.Join(Environment.NewLine, result.Warnings.Select(warning => "- " + warning)));
+        SetStatus("DXF", $"Exported {result.PointCount} point(s).");
+    }
+
+    private void ExportGeoJsonButton_Click(object? sender, EventArgs e)
+    {
+        var parseResult = parseService.ParsePoints(rawInputTextBox.Text);
+        if (!TryShowParseErrors(parseResult))
+        {
+            return;
+        }
+
+        using var dialog = new SaveFileDialog
+        {
+            DefaultExt = "geojson",
+            Filter = "GeoJSON (*.geojson)|*.geojson|All files (*.*)|*.*",
+            Title = "Export GeoJSON LineString"
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        var result = geoJsonService.Export(
+            parseResult.Points,
+            dialog.FileName,
+            new GeoJsonExportOptions("LineString", "SurveyCalcKit line", true, new Dictionary<string, string>()));
+        reportOutputTextBox.Text = reportBuilder.BuildGeoJsonExportReport(result, ReportLanguage.English);
+        SetStatus("GeoJSON", result.Warnings.Count == 0 ? "LineString exported." : "Export completed with warnings.");
     }
 
     private void ClearButton_Click(object? sender, EventArgs e)
     {
         rawInputTextBox.Clear();
         reportOutputTextBox.Clear();
+        SetStatus("Ready", "Input and report cleared.");
     }
 
     private bool TryShowParseErrors(ParseResult parseResult)
@@ -399,8 +648,9 @@ public partial class Form1 : Form
         return false;
     }
 
-    private static void ShowError(string message)
+    private void ShowError(string message)
     {
+        SetStatus("Error", message);
         MessageBox.Show(message, "SurveyCalcKit", MessageBoxButtons.OK, MessageBoxIcon.Warning);
     }
 
@@ -439,6 +689,21 @@ public partial class Form1 : Form
     private static VerticalCurveResult CreateEmptyVerticalCurveResult()
     {
         return new VerticalCurveResult(string.Empty, 0, 0, 0, 0, 0, 0, "NotEvaluated", 0, 0, 0, 0, new List<VerticalCurvePointResult>(), new List<string>());
+    }
+
+    private static ClothoidResult CreateEmptyClothoidResult()
+    {
+        return new ClothoidResult(string.Empty, 0, 0, 0, 0, 0, 0, 0, 0, string.Empty, new List<ClothoidPointResult>(), new List<string>());
+    }
+
+    private static HorizontalAlignmentResult CreateEmptyAlignmentResult()
+    {
+        return new HorizontalAlignmentResult(string.Empty, 0, 0, 0, new List<AlignmentElementSummary>(), new List<string>(), null);
+    }
+
+    private static CenterlineOffsetResult CreateEmptyCenterlineOffsetResult()
+    {
+        return new CenterlineOffsetResult(0, 0, new List<CenterlineOffsetPointResult>(), new List<string>());
     }
 
     private static StakeoutBatchResult CreateEmptyStakeoutBatchResult()

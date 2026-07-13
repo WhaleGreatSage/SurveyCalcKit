@@ -1,0 +1,15 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "控制点A", "category": "control" },
+      "geometry": { "type": "Point", "coordinates": [1000.0, 1000.0, 12.5] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "P2" },
+      "geometry": { "type": "Point", "coordinates": [1050.0, 1000.0] }
+    }
+  ]
+}

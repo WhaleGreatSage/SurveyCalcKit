@@ -35,8 +35,12 @@ SurveyCalcKit is intended to grow slowly and remain beginner-friendly.
 
 ## Version 0.3
 
-- Beginner-friendly adjustment examples.
-- NuGet package metadata for `SurveyCalcKit.Core`.
+- Clothoid transition curve calculation with numerical coordinate integration.
+- Composite tangent, clothoid, and circular-arc horizontal alignment engine.
+- Arbitrary-chainage centerline coordinate, azimuth, curvature, and radius queries.
+- Multi-segment centerline chainage and signed-offset reverse calculation.
+- GeoJSON Point, LineString, and Polygon planar import/export.
+- WinForms tools organized into functional tabs with status reporting.
 
 ## Later Ideas
 
@@ -47,13 +51,15 @@ SurveyCalcKit is intended to grow slowly and remain beginner-friendly.
 - PDF report export.
 - Localization resource files.
 - Plugin-style calculation modules.
-- Road curve element calculation.
+- Combined horizontal and vertical 3D alignment.
 - Stakeout report export.
 - Least squares traverse adjustment.
 - Vertical curve batch table export.
-- Combined horizontal and vertical alignment.
-- Spiral transition curve calculation.
+- Superelevation calculation.
+- Earthwork cross-section calculation.
 - Batch stakeout Excel import/export.
+- LandXML import/export.
+- Map visualization.
 - DXF layer customization.
 - DXF export for stakeout and traverse results.
 - CAD block symbol export.
