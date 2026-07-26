@@ -6,6 +6,21 @@ All notable changes to this project will be documented in this file.
 
 No unreleased changes.
 
+## v0.4.0 - 2026-07-26
+
+### Added
+
+- Cross-section earthwork input parser with whitespace and comma-separated rows.
+- Separate cut and fill area calculation with linear zero-crossing interpolation.
+- Average end-area cut/fill volumes by chainage interval and project totals.
+- English and Chinese earthwork reports.
+- `surveycalc earthwork <file>` CLI command and WinForms `Calculate Earthwork` action.
+- Realistic sample data and focused unit tests for earthwork calculations.
+
+### Changed
+
+- Expanded README, usage, formulas, roadmap, and contribution guidance for earthwork workflows.
+
 ## v0.3.0 - 2026-07-13
 
 ### Added

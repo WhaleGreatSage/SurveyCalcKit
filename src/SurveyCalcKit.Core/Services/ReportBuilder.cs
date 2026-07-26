@@ -567,6 +567,59 @@ public sealed class ReportBuilder
         return builder.ToString();
     }
 
+    public string BuildEarthworkReport(
+        EarthworkParseResult parseResult,
+        EarthworkResult result,
+        ReportLanguage language = ReportLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+        ArgumentNullException.ThrowIfNull(result);
+
+        var builder = new StringBuilder();
+        AppendTitle(
+            builder,
+            language,
+            "SurveyCalcKit Cross-Section Earthwork Report",
+            "SurveyCalcKit 横断面土方量报告");
+        if (!parseResult.IsSuccess)
+        {
+            AppendParseErrors(builder, parseResult.Errors, language);
+            return builder.ToString();
+        }
+
+        AppendLine(
+            builder,
+            language,
+            $"Cross-section count: {result.Sections.Count}",
+            $"横断面数: {result.Sections.Count}");
+        AppendLine(
+            builder,
+            language,
+            $"Volume interval count: {result.Intervals.Count}",
+            $"体积区间数: {result.Intervals.Count}");
+        AppendLine(
+            builder,
+            language,
+            $"Total cut volume: {FormatNumber(result.TotalCutVolume)}",
+            $"总挖方体积: {FormatNumber(result.TotalCutVolume)}");
+        AppendLine(
+            builder,
+            language,
+            $"Total fill volume: {FormatNumber(result.TotalFillVolume)}",
+            $"总填方体积: {FormatNumber(result.TotalFillVolume)}");
+        AppendLine(
+            builder,
+            language,
+            $"Net volume (cut - fill): {FormatNumber(result.NetVolume)}",
+            $"净体积（挖方-填方）: {FormatNumber(result.NetVolume)}");
+
+        AppendEarthworkSectionRows(builder, result.Sections, language);
+        AppendEarthworkIntervalRows(builder, result.Intervals, language);
+        AppendWarnings(builder, result.Warnings, language);
+        AppendParseErrors(builder, parseResult.Errors, language);
+        return builder.ToString();
+    }
+
     public string BuildClothoidReport(
         ClothoidParseResult parseResult,
         ClothoidResult result,
@@ -963,6 +1016,61 @@ public sealed class ReportBuilder
                 $"{FormatNumber(point.Chainage)} | {FormatNumber(point.TangentElevation)} | " +
                 $"{FormatNumber(point.CurveElevation)} | {FormatNumber(point.VerticalOffset)} | " +
                 $"{FormatBoolean(point.IsInsideCurve, language)}");
+        }
+    }
+
+    private static void AppendEarthworkSectionRows(
+        StringBuilder builder,
+        IReadOnlyList<CrossSectionAreaResult> sections,
+        ReportLanguage language)
+    {
+        if (sections.Count == 0)
+        {
+            AppendLine(builder, language, "Cross-section areas: none", "横断面面积: 无");
+            return;
+        }
+
+        AppendLine(builder, language, "Cross-section areas:", "横断面面积表:");
+        AppendLine(
+            builder,
+            language,
+            "Chainage | DesignElevation | MinOffset | MaxOffset | CutArea | FillArea | NetArea | Points",
+            "桩号 | 设计高程 | 最小偏距 | 最大偏距 | 挖方面积 | 填方面积 | 净面积 | 点数");
+
+        foreach (var section in sections)
+        {
+            builder.AppendLine(
+                $"{FormatNumber(section.Chainage)} | {FormatNumber(section.DesignElevation)} | " +
+                $"{FormatNumber(section.MinimumOffset)} | {FormatNumber(section.MaximumOffset)} | " +
+                $"{FormatNumber(section.CutArea)} | {FormatNumber(section.FillArea)} | " +
+                $"{FormatNumber(section.NetArea)} | {section.PointCount}");
+        }
+    }
+
+    private static void AppendEarthworkIntervalRows(
+        StringBuilder builder,
+        IReadOnlyList<EarthworkIntervalResult> intervals,
+        ReportLanguage language)
+    {
+        if (intervals.Count == 0)
+        {
+            AppendLine(builder, language, "Earthwork intervals: none", "土方量区间: 无");
+            return;
+        }
+
+        AppendLine(builder, language, "Average-end-area volumes:", "平均断面法体积表:");
+        AppendLine(
+            builder,
+            language,
+            "From | To | Length | CutVolume | FillVolume | NetVolume",
+            "起点桩号 | 终点桩号 | 长度 | 挖方体积 | 填方体积 | 净体积");
+
+        foreach (var interval in intervals)
+        {
+            builder.AppendLine(
+                $"{FormatNumber(interval.FromChainage)} | {FormatNumber(interval.ToChainage)} | " +
+                $"{FormatNumber(interval.Length)} | {FormatNumber(interval.CutVolume)} | " +
+                $"{FormatNumber(interval.FillVolume)} | {FormatNumber(interval.NetVolume)}");
         }
     }
 

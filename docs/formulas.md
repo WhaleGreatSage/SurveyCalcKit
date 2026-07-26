@@ -450,6 +450,55 @@ Curve classification uses the algebraic grade difference:
 
 SurveyCalcKit allows design chainages outside the PVC/PVT range, marks them as outside the curve, and reports a warning. If `L <= 0`, the calculator returns warnings and avoids division by zero.
 
+## Cross-Section Earthwork Area
+
+At each offset, elevation difference is:
+
+```text
+d = GroundElevation - DesignElevation
+```
+
+- `d > 0`: cut.
+- `d < 0`: fill.
+- `d = 0`: ground is on the design elevation.
+
+For two adjacent offsets with width `w` and differences with the same sign, the trapezoidal area is:
+
+```text
+Area = (abs(d1) + abs(d2)) * w / 2
+```
+
+When `d1` and `d2` have opposite signs, SurveyCalcKit assumes a straight ground line and locates the zero crossing:
+
+```text
+w1 = w * abs(d1) / (abs(d1) + abs(d2))
+w2 = w - w1
+```
+
+The two triangular areas are assigned independently to cut or fill:
+
+```text
+Area1 = abs(d1) * w1 / 2
+Area2 = abs(d2) * w2 / 2
+```
+
+This prevents cut and fill within one offset interval from cancelling each other.
+
+## Average End-Area Volume
+
+For two consecutive sections at chainages `S1` and `S2`:
+
+```text
+L = S2 - S1
+CutVolume = (CutArea1 + CutArea2) * L / 2
+FillVolume = (FillArea1 + FillArea2) * L / 2
+NetVolume = CutVolume - FillVolume
+```
+
+Total cut and fill are accumulated separately. The calculator requires a positive chainage interval and avoids volume calculations for zero-length intervals.
+
+The method assumes linear change between sections and a horizontal design elevation across each section. It does not include formation templates, side slopes, shrink/swell factors, prismoidal corrections, surface triangulation, or mass-haul optimization.
+
 ## DXF Export Conventions
 
 DXF export does not change calculation formulas. It writes parsed point coordinates directly to a basic DXF `ENTITIES` section:

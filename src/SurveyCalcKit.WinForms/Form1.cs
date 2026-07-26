@@ -13,6 +13,7 @@ public partial class Form1 : Form
     private readonly LevelingRouteCalculator levelingRouteCalculator = new();
     private readonly CircularCurveCalculator circularCurveCalculator = new();
     private readonly VerticalCurveCalculator verticalCurveCalculator = new();
+    private readonly EarthworkCalculator earthworkCalculator = new();
     private readonly ClothoidCalculator clothoidCalculator = new();
     private readonly HorizontalAlignmentBuilder horizontalAlignmentBuilder = new();
     private readonly AlignmentQueryService alignmentQueryService = new();
@@ -71,6 +72,7 @@ public partial class Form1 : Form
             calculateCurveButton,
             calculateVerticalCurveButton,
             calculateStakeoutButton,
+            CreateToolButton("Calculate Earthwork", CalculateEarthworkButton_Click),
             CreateToolButton("Calculate Clothoid", CalculateClothoidButton_Click),
             CreateToolButton("Load Alignment", LoadAlignmentButton_Click),
             CreateToolButton("Query Alignment", QueryAlignmentButton_Click),
@@ -312,6 +314,31 @@ public partial class Form1 : Form
 
         var result = verticalCurveCalculator.Calculate(parseResult.Input!);
         reportOutputTextBox.Text = reportBuilder.BuildVerticalCurveReport(parseResult, result, ReportLanguage.English);
+    }
+
+    private void CalculateEarthworkButton_Click(object? sender, EventArgs e)
+    {
+        var parseResult = parseService.ParseEarthwork(rawInputTextBox.Text);
+        if (!parseResult.IsSuccess)
+        {
+            reportOutputTextBox.Text = reportBuilder.BuildEarthworkReport(
+                parseResult,
+                CreateEmptyEarthworkResult(),
+                ReportLanguage.English);
+            SetStatus("Earthwork", "Input contains errors.");
+            return;
+        }
+
+        var result = earthworkCalculator.Calculate(parseResult.Input!);
+        reportOutputTextBox.Text = reportBuilder.BuildEarthworkReport(
+            parseResult,
+            result,
+            ReportLanguage.English);
+        SetStatus(
+            "Earthwork",
+            result.Intervals.Count > 0
+                ? $"Calculated {result.Intervals.Count} volume interval(s)."
+                : "No volume interval was calculated.");
     }
 
     private void CalculateClothoidButton_Click(object? sender, EventArgs e)
@@ -689,6 +716,17 @@ public partial class Form1 : Form
     private static VerticalCurveResult CreateEmptyVerticalCurveResult()
     {
         return new VerticalCurveResult(string.Empty, 0, 0, 0, 0, 0, 0, "NotEvaluated", 0, 0, 0, 0, new List<VerticalCurvePointResult>(), new List<string>());
+    }
+
+    private static EarthworkResult CreateEmptyEarthworkResult()
+    {
+        return new EarthworkResult(
+            new List<CrossSectionAreaResult>(),
+            new List<EarthworkIntervalResult>(),
+            0,
+            0,
+            0,
+            new List<string>());
     }
 
     private static ClothoidResult CreateEmptyClothoidResult()

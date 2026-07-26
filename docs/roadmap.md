@@ -42,6 +42,13 @@ SurveyCalcKit is intended to grow slowly and remain beginner-friendly.
 - GeoJSON Point, LineString, and Polygon planar import/export.
 - WinForms tools organized into functional tabs with status reporting.
 
+## Version 0.4
+
+- Cross-section parser for chainage, design elevation, offset, and ground elevation.
+- Separate cut/fill area calculation with interpolated ground/design crossings.
+- Average end-area interval and total earthwork volumes.
+- CLI, WinForms, reports, samples, tests, and documentation for earthwork calculations.
+
 ## Later Ideas
 
 - Spreadsheet import/export helpers.
@@ -56,7 +63,8 @@ SurveyCalcKit is intended to grow slowly and remain beginner-friendly.
 - Least squares traverse adjustment.
 - Vertical curve batch table export.
 - Superelevation calculation.
-- Earthwork cross-section calculation.
+- Road formation templates, side slopes, and prismoidal earthwork correction.
+- Earthwork shrink/swell factors and mass-haul diagrams.
 - Batch stakeout Excel import/export.
 - LandXML import/export.
 - Map visualization.

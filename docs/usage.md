@@ -28,6 +28,7 @@ dotnet run --project src/SurveyCalcKit.Cli -- quality samples/traverse_quality_s
 dotnet run --project src/SurveyCalcKit.Cli -- leveling samples/leveling_route_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- curve samples/circular_curve_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- vertical-curve samples/vertical_curve_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- earthwork samples/earthwork_cross_sections_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- clothoid samples/clothoid_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- alignment-info samples/composite_alignment_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- alignment-query samples/composite_alignment_sample.txt samples/alignment_chainages_sample.txt
@@ -403,6 +404,40 @@ dotnet run --project src/SurveyCalcKit.Cli -- export-md samples/report_sample.tx
 
 The Markdown document includes a title, generation timestamp, and fenced text block that preserves line breaks.
 
+## Cross-Section Earthwork
+
+Use `earthwork` to calculate cut/fill areas and average-end-area volumes:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- earthwork samples/earthwork_cross_sections_sample.txt
+```
+
+Input is organized into sections:
+
+```text
+SECTION 0.000 100.000
+-10.000 101.200
+0.000 99.800
+10.000 100.900
+END
+
+SECTION 20.000 100.250
+-10.000 101.000
+0.000 99.950
+10.000 100.800
+END
+```
+
+`SECTION` is followed by chainage and design elevation. Point rows contain offset and existing-ground elevation. Whitespace and comma separators are supported. `END` closes a block but may be omitted when the next `SECTION` begins.
+
+Offsets may be supplied out of order; the calculator sorts them and reports a warning. Duplicate offsets are ambiguous, so the later point at the same offset is ignored with a warning. At least two sections are required for volume and at least two unique points are required for each usable section area.
+
+In WinForms, paste or import the section text into the left input box, open the `Route Alignment` tab, and select `Calculate Earthwork`. The report appears in the right text box.
+
+The output contains cut/fill area for every section, average-end-area cut/fill volume for every chainage interval, project totals and net volume, and data-quality warnings.
+
+This version uses one horizontal design elevation per section. It does not generate a roadway template, formation width, side slopes, or a terrain surface.
+
 ## DXF Export
 
 Use `export-dxf` to write point records to a simple CAD-readable DXF file:
@@ -491,7 +526,7 @@ GeoJSON coordinate order is [X, Y]. SurveyCalcKit preserves those values as raw 
 
 ## WinForms
 
-The WinForms surface now includes `Calculate Vertical Curve` for vertical alignment reports and `Export DXF` for CAD-friendly point, label, and polyline output.
+The WinForms surface includes `Calculate Vertical Curve`, `Calculate Earthwork`, and `Export DXF` for route profile, cross-section volume, and CAD-friendly output workflows.
 
 Run on Windows:
 

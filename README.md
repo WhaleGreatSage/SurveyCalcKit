@@ -2,7 +2,7 @@
 
 [![.NET](https://github.com/WhaleGreatSage/SurveyCalcKit/actions/workflows/dotnet.yml/badge.svg)](https://github.com/WhaleGreatSage/SurveyCalcKit/actions/workflows/dotnet.yml)
 
-SurveyCalcKit is an open-source C#/.NET 8 surveying calculation toolkit for students, teachers, and beginner engineering surveying workflows. Version 0.3.0 adds a practical Route Centerline and Alignment Engine for tangent, transition-curve, and circular-arc workflows.
+SurveyCalcKit is an open-source C#/.NET 8 surveying calculation toolkit for students, teachers, and beginner engineering surveying workflows. Version 0.4.0 adds cross-section cut/fill area and average-end-area earthwork volume calculation.
 ## 中文说明
 
 SurveyCalcKit 是一个面向测绘学生和初学者的开源测绘计算工具包，目标是用清晰、可测试的 C#/.NET 代码复现常见测绘计算流程，包括导线边长、方位角、高差、坡度、坐标变换和计算报告生成等功能。
@@ -29,6 +29,7 @@ The project focuses on small, readable, testable calculations that can be used f
 - Calculate leveling route closure error and adjusted elevations.
 - Calculate circular curve elements for road and route engineering.
 - Calculate vertical curve elements and design elevations for road profile work.
+- Calculate cross-section cut/fill areas and earthwork volumes with zero-crossing interpolation.
 - Calculate clothoid transition curves with deterministic Simpson-rule coordinate integration.
 - Build composite tangent, clothoid, and circular-arc horizontal alignments.
 - Query centerline coordinates, azimuth, curvature, and radius at arbitrary chainages.
@@ -76,6 +77,7 @@ samples/
   traverse_quality_sample.txt
   circular_curve_sample.txt
   vertical_curve_sample.txt
+  earthwork_cross_sections_sample.txt
   clothoid_sample.txt
   composite_alignment_sample.txt
   alignment_chainages_sample.txt
@@ -115,11 +117,11 @@ Run the WinForms app on Windows:
 dotnet run --project src/SurveyCalcKit.WinForms
 ```
 
-## What Is New in v0.3.0
+## What Is New in v0.4.0
 
-The Route Centerline and Alignment Engine introduces clothoid transition curves, composite horizontal alignments, arbitrary-chainage coordinate queries, multi-segment centerline offset calculations, and GeoJSON interchange. The route engine is planar only: X/Y values are treated as supplied, and it does not perform CRS, longitude/latitude, or vertical-alignment transformations.
+The cross-section earthwork module reads section chainage, design elevation, and offset/ground-elevation points. It calculates separate cut and fill areas, interpolates where the ground line crosses the design elevation, and calculates interval and total volumes with the average end-area method.
 
-SurveyCalcKit uses mathematical planar azimuths throughout route calculations: degrees are measured counterclockwise from the positive X axis. A left curve increases heading; a right curve decreases heading.
+This simple method assumes a horizontal design elevation across each section and linear variation between supplied points and sections. It does not generate road templates, side slopes, surfaces, mass-haul diagrams, or regulatory design checks.
 
 ## CLI Usage
 
@@ -136,6 +138,7 @@ surveycalc quality <file>
 surveycalc leveling <file>
 surveycalc curve <file>
 surveycalc vertical-curve <file>
+surveycalc earthwork <file>
 surveycalc clothoid <file>
 surveycalc alignment-info <file>
 surveycalc alignment-query <alignment-file> <chainages-file>
@@ -166,6 +169,7 @@ dotnet run --project src/SurveyCalcKit.Cli -- quality samples/traverse_quality_s
 dotnet run --project src/SurveyCalcKit.Cli -- leveling samples/leveling_route_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- curve samples/circular_curve_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- vertical-curve samples/vertical_curve_sample.txt
+dotnet run --project src/SurveyCalcKit.Cli -- earthwork samples/earthwork_cross_sections_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- clothoid samples/clothoid_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- alignment-info samples/composite_alignment_sample.txt
 dotnet run --project src/SurveyCalcKit.Cli -- alignment-query samples/composite_alignment_sample.txt samples/alignment_chainages_sample.txt
@@ -191,8 +195,8 @@ The WinForms app provides:
 
 - A left multiline text box for raw point input.
 - A right multiline text box for calculation reports.
-- Buttons include `Calculate Vertical Curve` for profile design elevations and `Export DXF` for CAD-friendly point and polyline output.
-- Tools are grouped into Basic Calculations, Traverse and Leveling, Route Alignment, Import and Export, and Reports tabs. The Route Alignment tab adds Clothoid, Alignment, Query Alignment, and Centerline Offset workflows; the import/export tab adds GeoJSON actions.
+- Buttons include `Calculate Vertical Curve` for profile design elevations, `Calculate Earthwork` for cross-section volumes, and `Export DXF` for CAD-friendly point and polyline output.
+- Tools are grouped into Basic Calculations, Traverse and Leveling, Route Alignment, Import and Export, and Reports tabs. The Route Alignment tab includes vertical curves, earthwork, clothoids, alignments, chainage queries, and centerline offsets; the import/export tab includes GeoJSON actions.
 - Import, 导入 Excel, Calculate Traverse, Calculate Elevation, Calculate Leveling, Calculate Closure, Evaluate Quality, Calculate Curve, Calculate Forward, Calculate Offset, Calculate Stakeout, Calculate Inverse, Calculate Segments, Convert Angle, 导出 Excel, Export Markdown, Export Report, and Clear buttons.
 
 Use `Import` to load `.txt`, `.dat`, or `.csv` style point files. Use `导入 Excel` to load `.xlsx` point data into the raw input box. Use the calculation buttons to generate traverse, elevation, leveling, closure, quality evaluation, circular curve, stakeout, coordinate forward, coordinate inverse, batch segment, angle conversion, or chainage/offset reports. Use `Export Report`, `Export Markdown`, or `导出 Excel` to save the current report.
@@ -366,6 +370,34 @@ dotnet run --project src/SurveyCalcKit.Cli -- vertical-curve samples/vertical_cu
 ```
 
 Sample output includes the algebraic grade difference, crest/sag classification, PVC/PVT chainage and elevation, and a design elevation table. Chainages outside the curve are allowed but are marked as outside and reported with warnings.
+
+## Cross-Section Earthwork Volume / 横断面土方量
+
+The `earthwork` command calculates separate cut and fill areas for each cross-section and volumes between consecutive sections. A `SECTION` row contains chainage and design elevation; following rows contain offset and existing-ground elevation. `END` is optional before the next section.
+
+```text
+SECTION 0.000 100.000
+-10.000 101.200
+0.000 99.800
+10.000 100.900
+END
+
+SECTION 20.000 100.250
+-10.000 101.000
+0.000 99.950
+10.000 100.800
+END
+```
+
+Run:
+
+```bash
+dotnet run --project src/SurveyCalcKit.Cli -- earthwork samples/earthwork_cross_sections_sample.txt
+```
+
+Positive ground-minus-design differences are cut; negative differences are fill. Where the sign changes, SurveyCalcKit linearly interpolates the zero point and keeps cut and fill areas separate. Adjacent volumes use the average end-area method. Results include per-section areas, per-interval volumes, totals, net volume, and data-quality warnings.
+
+Limitations: the design surface is horizontal across each section, all coordinates use the caller's units, and the calculator assumes linear interpolation. It does not create formation widths, side slopes, terrain surfaces, shrink/swell factors, or mass-haul analysis.
 
 ## DXF Export / CAD Output
 
@@ -585,7 +617,7 @@ The Excel exporter writes structured worksheets for traverse segment results, le
 
 ## Roadmap
 
-- Add more traverse adjustment workflows.
+- Add road-template and side-slope support to the earthwork workflow.
 - Add import/export helpers for common classroom spreadsheet formats.
 - Add richer WinForms workflows for coordinate transformation.
 - Add NuGet packaging for `SurveyCalcKit.Core`.

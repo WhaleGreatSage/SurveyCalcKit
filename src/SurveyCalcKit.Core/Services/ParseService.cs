@@ -1072,6 +1072,153 @@ public sealed class ParseService
             errors);
     }
 
+    public EarthworkParseResult ParseEarthwork(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        var sections = new List<CrossSectionDefinition>();
+        var errors = new List<ParseError>();
+        double? currentChainage = null;
+        double? currentDesignElevation = null;
+        var currentPoints = new List<CrossSectionPoint>();
+
+        using var reader = new StringReader(text);
+        var lineNumber = 0;
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            lineNumber++;
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0)
+            {
+                continue;
+            }
+
+            var fields = SplitFields(trimmed);
+            var keyword = fields[0].ToUpperInvariant();
+            if (keyword == "SECTION")
+            {
+                AddCurrentEarthworkSection(
+                    sections,
+                    currentChainage,
+                    currentDesignElevation,
+                    currentPoints);
+                currentChainage = null;
+                currentDesignElevation = null;
+                currentPoints = new List<CrossSectionPoint>();
+
+                if (fields.Length != 3)
+                {
+                    errors.Add(new ParseError(
+                        lineNumber,
+                        line,
+                        $"Line {lineNumber}: SECTION requires chainage and design elevation."));
+                    continue;
+                }
+
+                if (!TryParseNumber(fields[1], out var chainage) || !double.IsFinite(chainage))
+                {
+                    errors.Add(CreateNumericError(lineNumber, line, "Section chainage", fields[1]));
+                    continue;
+                }
+
+                if (!TryParseNumber(fields[2], out var designElevation) || !double.IsFinite(designElevation))
+                {
+                    errors.Add(CreateNumericError(lineNumber, line, "Design elevation", fields[2]));
+                    continue;
+                }
+
+                currentChainage = chainage;
+                currentDesignElevation = designElevation;
+                continue;
+            }
+
+            if (keyword == "END")
+            {
+                if (fields.Length != 1)
+                {
+                    errors.Add(new ParseError(
+                        lineNumber,
+                        line,
+                        $"Line {lineNumber}: END does not take any values."));
+                    continue;
+                }
+
+                if (!currentChainage.HasValue)
+                {
+                    errors.Add(new ParseError(
+                        lineNumber,
+                        line,
+                        $"Line {lineNumber}: END appears without an active SECTION."));
+                    continue;
+                }
+
+                AddCurrentEarthworkSection(
+                    sections,
+                    currentChainage,
+                    currentDesignElevation,
+                    currentPoints);
+                currentChainage = null;
+                currentDesignElevation = null;
+                currentPoints = new List<CrossSectionPoint>();
+                continue;
+            }
+
+            if (!currentChainage.HasValue)
+            {
+                errors.Add(new ParseError(
+                    lineNumber,
+                    line,
+                    $"Line {lineNumber}: Cross-section point appears before a valid SECTION line."));
+                continue;
+            }
+
+            if (fields.Length != 2)
+            {
+                errors.Add(new ParseError(
+                    lineNumber,
+                    line,
+                    $"Line {lineNumber}: Cross-section point requires offset and ground elevation."));
+                continue;
+            }
+
+            if (!TryParseNumber(fields[0], out var offset) || !double.IsFinite(offset))
+            {
+                errors.Add(CreateNumericError(lineNumber, line, "Offset", fields[0]));
+                continue;
+            }
+
+            if (!TryParseNumber(fields[1], out var groundElevation) || !double.IsFinite(groundElevation))
+            {
+                errors.Add(CreateNumericError(lineNumber, line, "Ground elevation", fields[1]));
+                continue;
+            }
+
+            currentPoints.Add(new CrossSectionPoint(offset, groundElevation));
+        }
+
+        AddCurrentEarthworkSection(
+            sections,
+            currentChainage,
+            currentDesignElevation,
+            currentPoints);
+
+        if (sections.Count == 0)
+        {
+            errors.Add(new ParseError(
+                0,
+                string.Empty,
+                "Earthwork input requires at least one SECTION chainage designElevation block."));
+        }
+
+        if (errors.Count > 0)
+        {
+            return new EarthworkParseResult(null, errors);
+        }
+
+        return new EarthworkParseResult(new EarthworkInput(sections), errors);
+    }
+
     public ClothoidParseResult ParseClothoid(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
@@ -1551,6 +1698,21 @@ public sealed class ParseService
         }
 
         return direction;
+    }
+
+    private static void AddCurrentEarthworkSection(
+        List<CrossSectionDefinition> sections,
+        double? chainage,
+        double? designElevation,
+        List<CrossSectionPoint> points)
+    {
+        if (chainage.HasValue && designElevation.HasValue)
+        {
+            sections.Add(new CrossSectionDefinition(
+                chainage.Value,
+                designElevation.Value,
+                points));
+        }
     }
 
     private static double? ParseRequiredNumber(

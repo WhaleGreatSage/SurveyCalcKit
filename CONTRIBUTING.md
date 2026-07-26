@@ -34,6 +34,13 @@ dotnet test
 - Add tolerance-based tests for floating-point geometry.
 - Do not claim CRS transformation, survey accuracy classes, or design-standard compliance unless the implementation verifies them.
 
+## Earthwork Modules
+
+- Keep cut and fill quantities separate throughout calculation and reporting.
+- Add hand-checkable tests whenever changing area or volume formulas.
+- Document interpolation, sign, unit, and design-surface assumptions.
+- Do not imply template, side-slope, shrink/swell, or regulatory support unless those behaviors are implemented and tested.
+
 ## Reporting Bugs
 
 Please include:

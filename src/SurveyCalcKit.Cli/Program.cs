@@ -18,6 +18,7 @@ internal static class SurveyCalcCli
     private static readonly BatchSegmentTableCalculator BatchSegmentTableCalculator = new();
     private static readonly CircularCurveCalculator CircularCurveCalculator = new();
     private static readonly VerticalCurveCalculator VerticalCurveCalculator = new();
+    private static readonly EarthworkCalculator EarthworkCalculator = new();
     private static readonly ClothoidCalculator ClothoidCalculator = new();
     private static readonly HorizontalAlignmentBuilder HorizontalAlignmentBuilder = new();
     private static readonly AlignmentQueryService AlignmentQueryService = new();
@@ -52,6 +53,7 @@ internal static class SurveyCalcCli
             "leveling" => RunLeveling(commandArgs),
             "curve" => RunCurve(commandArgs),
             "vertical-curve" => RunVerticalCurve(commandArgs),
+            "earthwork" => RunEarthwork(commandArgs),
             "clothoid" => RunClothoid(commandArgs),
             "alignment-info" => RunAlignmentInfo(commandArgs),
             "alignment-query" => RunAlignmentQuery(commandArgs),
@@ -325,6 +327,28 @@ internal static class SurveyCalcCli
         var result = VerticalCurveCalculator.Calculate(parseResult.Input!);
         Console.WriteLine(ReportBuilder.BuildVerticalCurveReport(parseResult, result));
         return result.Points.Count > 0 ? 0 : 1;
+    }
+
+    private static int RunEarthwork(string[] args)
+    {
+        if (!TryReadFileArgument(args, out var text))
+        {
+            return 1;
+        }
+
+        var parseResult = Parser.ParseEarthwork(text);
+        if (!parseResult.IsSuccess)
+        {
+            Console.Error.WriteLine(ReportBuilder.BuildEarthworkReport(
+                parseResult,
+                CreateEmptyEarthworkResult(),
+                ReportLanguage.English));
+            return 1;
+        }
+
+        var result = EarthworkCalculator.Calculate(parseResult.Input!);
+        Console.WriteLine(ReportBuilder.BuildEarthworkReport(parseResult, result));
+        return result.Intervals.Count > 0 ? 0 : 1;
     }
 
     private static int RunClothoid(string[] args)
@@ -1065,6 +1089,17 @@ internal static class SurveyCalcCli
             new List<string>());
     }
 
+    private static EarthworkResult CreateEmptyEarthworkResult()
+    {
+        return new EarthworkResult(
+            new List<CrossSectionAreaResult>(),
+            new List<EarthworkIntervalResult>(),
+            0,
+            0,
+            0,
+            new List<string>());
+    }
+
     private static ClothoidResult CreateEmptyClothoidResult()
     {
         return new ClothoidResult(
@@ -1148,6 +1183,7 @@ internal static class SurveyCalcCli
               surveycalc leveling <file>
               surveycalc curve <file>
               surveycalc vertical-curve <file>
+              surveycalc earthwork <file>
               surveycalc clothoid <file>
               surveycalc alignment-info <file>
               surveycalc alignment-query <alignment-file> <chainages-file>
@@ -1215,6 +1251,13 @@ internal static class SurveyCalcCli
               CHAINAGES
               1150.000
               1200.000
+
+            Earthwork cross-section rows:
+              SECTION 0.000 100.000
+              -10.000 101.200
+              0.000 99.800
+              10.000 100.900
+              END
 
             Stakeout rows:
               ORIGIN A 1000.000 1000.000
